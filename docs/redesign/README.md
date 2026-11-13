@@ -177,6 +177,10 @@ Son comportamientos del motor o de vistas anteriores que el rediseño hace más 
 5. **Paso atrás** no está disponible en modo comparación.
 6. **Pulsos en edges avanzados:** los pulsos de delivery que recorren conexiones de "detalle avanzado" (watch del kubelet, image pull, APIs de Terraform) no se ven si ese detalle está desactivado.
 
+### Corrección posterior detectada por CI
+
+En el runner de GitHub Actions (viewport por defecto de 1280 px y fuentes más anchas), la leyenda abierta, anclada abajo a la derecha con hasta 760 px de ancho, se superponía a los controles del canvas y bloqueaba sus clics. Ahora la leyenda se ancla arriba a la derecha, su ancho se limita al espacio que deja libre la columna de controles y, si no cabe, reparte sus columnas y hace scroll. El E2E simula texto más ancho y comprueba por geometría que no haya solape, así no depende de las fuentes del entorno.
+
 ## 11. Limitaciones y deuda técnica
 
 - **Capa de observabilidad:** ningún escenario tiene componentes de observabilidad en el modelo, así que la capa aparece deshabilitada. La observabilidad vive en la consola.

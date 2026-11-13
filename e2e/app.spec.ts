@@ -218,8 +218,15 @@ test.describe('Cloud Flow Lab', () => {
   });
 
   test('leyenda y minimapa se muestran bajo demanda', async ({ page }) => {
+    // Texto más ancho que el de este entorno (como las fuentes del runner de CI).
+    await page.addStyleTag({ content: '.cfl-legend { letter-spacing: 0.6px; font-size: 12.5px !important; }' });
     await page.getByTestId('legend-toggle').click();
     await expect(page.getByTestId('legend')).toContainText('Control plane');
+    // La leyenda no debe tapar los controles del canvas.
+    const legend = (await page.getByTestId('legend').boundingBox())!;
+    const controls = (await page.locator('.react-flow__controls').boundingBox())!;
+    const overlap = !(legend.x > controls.x + controls.width || legend.x + legend.width < controls.x || legend.y > controls.y + controls.height || legend.y + legend.height < controls.y);
+    expect(overlap).toBe(false);
     await page.getByTestId('minimap-toggle').click();
     await expect(page.locator('.react-flow__minimap')).toBeVisible();
   });

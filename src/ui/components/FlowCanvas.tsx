@@ -306,7 +306,7 @@ function Legend() {
   if (!open) return null;
   const statuses: VisualStatus[] = ['idle', 'running', 'success', 'warning', 'retrying', 'failed', 'blocked', 'rolling-back'];
   return (
-    <Panel position="bottom-right" className="cfl-legend" data-testid="legend">
+    <Panel position="top-right" className="cfl-legend" data-testid="legend">
       <div className="cfl-legend-col">
         <h5>Conexiones</h5>
         {(['traffic', 'internal', 'delivery', 'control', 'iac'] as EdgeClass[]).map((c) => (

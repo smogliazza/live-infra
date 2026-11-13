@@ -223,7 +223,12 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 .cfl-pulse.static { opacity: 0.9; }
 
 /* leyenda */
-.cfl-legend { display: flex; gap: 18px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); font-size: var(--fs-xs); color: var(--text-2); max-width: 760px; }
+.cfl-legend {
+  display: flex; flex-wrap: wrap; gap: 10px 18px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); font-size: var(--fs-xs); color: var(--text-2);
+  /* Nunca invade la columna de controles (izquierda) ni se sale del canvas, sea cual sea la fuente. */
+  max-width: min(760px, calc(100% - 96px)); max-height: calc(100% - 24px); overflow: auto;
+}
 .cfl-legend h5 { margin: 0 0 4px; font: 600 9.5px var(--font-ui); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 .cfl-legend h5:not(:first-child) { margin-top: 8px; }
 .cfl-legend-col { display: flex; flex-direction: column; gap: 3px; }
