@@ -45,6 +45,19 @@ test.describe('Cloud Flow Lab', () => {
     await expect(clock).not.toHaveText(before ?? '');
   });
 
+  test('perfil Azure: Application Gateway sin backends sanos devuelve 502', async ({ page }) => {
+    await page.getByLabel('Proveedor', { exact: true }).selectOption('azure');
+    await expect(page.getByTestId('node-appgw')).toBeVisible();
+    await page.getByTestId('open-faults').click();
+    await page.getByTestId('fault-lb-no-healthy-targets').check();
+    await page.getByLabel('Velocidad').selectOption('10');
+    await page.getByTestId('send-request').click();
+    await page.getByTestId('tab-events').click();
+    await expect(page.getByTestId('event-log')).toContainText('HTTP 502', { timeout: 30_000 });
+    await page.getByTestId('node-appgw').click();
+    await expect(page.getByTestId('inspector')).toContainText('Application Gateway');
+  });
+
   test('release completa con rollout y smoke test', async ({ page }) => {
     await page.getByLabel('Velocidad').selectOption('25');
     await page.getByTestId('start-release').click();

@@ -89,9 +89,37 @@ export const Boundary = z.object({
 });
 export type Boundary = z.infer<typeof Boundary>;
 
+/**
+ * Intención arquitectónica de un nodo, común a todos los proveedores. Es la
+ * clave del modo comparación: se compara la función, no el nombre comercial.
+ */
+export const Intent = z.enum([
+  'client',
+  'dns-resolver',
+  'dns-authoritative',
+  'edge-cdn',
+  'waf',
+  'l7-load-balancer',
+  'microservice',
+  'gitops-controller',
+  'cache',
+  'database',
+  'k8s-control-plane',
+  'registry',
+  'queue',
+  'developer',
+  'source-repo',
+  'ci',
+  'gitops-repo',
+  'iac',
+  'iac-state',
+]);
+export type Intent = z.infer<typeof Intent>;
+
 export const NodeDef = z.object({
   id: z.string(),
   label: z.string(),
+  intent: Intent,
   /** Referencia a CatalogService.id */
   service: z.string(),
   boundary: z.string().optional(),
@@ -228,11 +256,17 @@ export const DeliveryDef = z.object({
     progressDeadlineS: z.number(),
   }),
   smokeTestComponent: z.string(),
+  /** Nombres de nodos (VMs) del cluster donde el scheduler coloca Pods. */
+  clusterNodeNames: z.array(z.string()).min(1),
   terraform: z.object({
     component: z.string(),
     stateBackend: z.string(),
     stateComponent: z.string(),
     resources: z.array(z.string()),
+    /** Mensaje cuando el lock del state está ocupado (difiere por backend). */
+    lockErrorMessage: z.string(),
+    /** Mensaje de drift detectado en el plan. */
+    driftMessage: z.string(),
   }),
 });
 export type DeliveryDef = z.infer<typeof DeliveryDef>;
@@ -256,6 +290,8 @@ export const ScenarioDef = z.object({
   }),
   delivery: DeliveryDef,
   faults: z.array(FaultDef),
+  /** Cómo se recogerían métricas/logs/trazas en este proveedor (texto didáctico). */
+  observabilityNotes: z.array(z.string()).default([]),
 });
 export type ScenarioDef = z.infer<typeof ScenarioDef>;
 

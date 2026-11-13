@@ -297,10 +297,9 @@ function MetricsView() {
             <b>Prometheus</b> hace <i>scrape</i> (pull) del endpoint <code>/metrics</code> de cada Pod descubierto vía la API de Kubernetes; <b>Grafana</b> consulta Prometheus con PromQL, p.ej.{' '}
             <code>histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))</code>.
           </li>
-          <li>
-            <b>CloudWatch</b> recibe métricas <i>push</i> de los servicios gestionados (namespace <code>AWS/ApplicationELB</code>: RequestCount, TargetResponseTime, HTTPCode_ELB_5XX_Count…) y,
-            con Container Insights, de EKS.
-          </li>
+          {engine.scenario.observabilityNotes.map((n) => (
+            <li key={n}>{n}</li>
+          ))}
           <li>
             Las <b>trazas</b> se generan con OpenTelemetry (contexto W3C <code>traceparent</code>) y se exportan a un backend (X-Ray, Tempo, Jaeger…). Logs, métricas y trazas se correlacionan por
             trace_id.

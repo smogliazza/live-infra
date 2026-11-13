@@ -7,6 +7,8 @@ import { ProviderProfile, ScenarioDef, validateScenarioReferences, type CatalogS
 import { genericServices } from './generic';
 import { awsServices } from './providers/aws/services';
 import { awsReferenceScenario } from '../scenarios/aws-reference';
+import { azureServices } from './providers/azure/services';
+import { azureReferenceScenario } from '../scenarios/azure-reference';
 
 function buildProfile(input: ProviderProfile): ProviderProfile {
   const profile = ProviderProfile.parse(input);
@@ -25,6 +27,13 @@ export const providers: ProviderProfile[] = [
     shortName: 'AWS',
     services: [...genericServices, ...awsServices],
     scenarios: [awsReferenceScenario],
+  }),
+  buildProfile({
+    id: 'azure',
+    name: 'Microsoft Azure',
+    shortName: 'Azure',
+    services: [...genericServices, ...azureServices],
+    scenarios: [azureReferenceScenario],
   }),
 ];
 

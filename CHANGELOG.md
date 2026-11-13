@@ -4,6 +4,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-13
+
+### Añadido
+- Perfil Microsoft Azure con escenario de referencia (Front Door + WAF, Application Gateway + AGIC, AKS, ACR, PostgreSQL Flexible Server, Azure Managed Redis, Service Bus, Azure DevOps, backend azurerm).
+- Campo `intent` en los nodos y aplicación "shop" compartida entre proveedores.
+- `observabilityNotes`, `clusterNodeNames` y mensajes de Terraform por escenario.
+- Tests del motor parametrizados por perfil, test de paridad y E2E de Azure.
+
+### Cambiado
+- El fallo `alb-no-healthy-targets` pasa a llamarse `lb-no-healthy-targets` (común a todos los perfiles).
+- El contenido genérico del catálogo (CI, Deployment, Terraform, GitOps) ya no menciona servicios de AWS; la config del backend de state vive en el nodo de state de cada proveedor.
+
+### Corregido
+- `lb.route` mostraba la regla del edge entrante (la del componente anterior) en lugar de la regla del propio componente.
+
 ## [0.1.0] - 2026-11-13
 
 ### Añadido

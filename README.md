@@ -3,14 +3,34 @@
 **Laboratorio visual e interactivo para comprender arquitecturas Cloud, DevOps, Kubernetes, networking y observabilidad.**
 Simulación 100% educativa y determinista: no se conecta a cuentas cloud, no pide credenciales y no ejecuta operaciones reales.
 
-> **Estado: v0.1 — vertical slice.** Motor completo + perfil **AWS**. Azure, Google Cloud, DigitalOcean y OCI están planificados (ver [ROADMAP.md](ROADMAP.md)).
+> **Estado: v0.2.** Motor completo + perfiles **AWS** y **Microsoft Azure**. Google Cloud, DigitalOcean y OCI están planificados (ver [ROADMAP.md](ROADMAP.md)).
+
+## Proveedores
+
+La aplicación de ejemplo ("shop": `api`, `catalog`, `orders`) es la **misma** en todos los perfiles; cambia la infraestructura que la soporta. Cada nodo declara su *intención arquitectónica* (edge, WAF, LB L7, base de datos…) para comparar funciones y no nombres comerciales.
+
+| Intención | AWS | Azure |
+|---|---|---|
+| DNS autoritativo | Route 53 | Azure DNS |
+| Edge / CDN | CloudFront | Front Door Premium |
+| WAF | AWS WAF (web ACL) | Azure WAF (política de Front Door) |
+| LB L7 → Pods | ALB + AWS Load Balancer Controller (`target-type: ip`) | Application Gateway v2 + AGIC (Azure CNI) |
+| Kubernetes | EKS | AKS |
+| Registry | ECR | ACR |
+| Base de datos | RDS for PostgreSQL | PostgreSQL Flexible Server |
+| Cache | ElastiCache | Azure Managed Redis |
+| Cola | SQS | Service Bus |
+| CI | GitLab CI/CD | Azure DevOps Pipelines |
+| State de Terraform | S3 (`use_lockfile`) | Blob Storage (lease nativo) |
+
+Las equivalencias son **aproximadas**: el inspector y los escenarios de fallo documentan las diferencias (p.ej. sin destinos sanos el ALB devuelve **503** y Application Gateway **502**).
 
 ## Qué puedes hacer
 
-- **Enviar una request** y seguirla salto a salto: resolver DNS → Route 53 → CloudFront → AWS WAF → ALB → `api` → fan-out a `catalog` (ElastiCache / RDS) y `orders` (RDS + SQS asíncrono) → respuesta de vuelta.
-- **Lanzar una release** multi-servicio: push → GitLab CI (tests, scans, build/scan/push por servicio en paralelo) → ECR → repo GitOps → Argo CD → rolling update en EKS (probes, EndpointSlices) → smoke test → rollback GitOps si algo falla.
+- **Enviar una request** y seguirla salto a salto: resolver DNS → DNS autoritativo → edge → WAF → load balancer L7 → `api` → fan-out a `catalog` (cache / base de datos) y `orders` (base de datos + cola asíncrona) → respuesta de vuelta.
+- **Lanzar una release** multi-servicio: push → CI (tests, scans, build/scan/push por servicio en paralelo) → registry → repo GitOps → Argo CD → rolling update en Kubernetes (probes, EndpointSlices) → smoke test → rollback GitOps si algo falla.
 - **Ejecutar un cambio de infraestructura** con Terraform (plan, aprobación manual, apply, state lock), separado de las releases.
-- **Inyectar fallos** (403 WAF, 503 ALB, deadline/reintento 504, NetworkPolicy, DB saturada, NXDOMAIN con TTL, tests rotos, ImagePullBackOff, readiness fallida, state lock, drift) y diagnosticarlos.
+- **Inyectar fallos** (403 WAF, LB sin destinos sanos, deadline/reintento 504, NetworkPolicy, DB saturada, NXDOMAIN con TTL, tests rotos, ImagePullBackOff, readiness fallida, state lock, drift) y diagnosticarlos.
 - **Correlacionar**: cada pulso del mapa, línea de la consola, span de la traza y métrica sale del mismo event stream. Clic en un log → resalta nodo/edge; clic en un nodo → filtra la consola; clic en un pulso o traza → resalta el recorrido completo.
 - **Inspeccionar** cualquier componente: explicación, detalle avanzado, configuración ilustrativa, protocolos/puertos, identidad, límites de confianza, pods en vivo, fallos típicos, documentación oficial y glosario.
 - **Controlar el tiempo**: play/pausa, paso adelante, **paso atrás** (replay determinista), reinicio y velocidad 0.25×–25×.

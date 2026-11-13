@@ -26,6 +26,7 @@ export function Header() {
         <label className="cfl-field">
           <span>Proveedor</span>
           <select
+            aria-label="Proveedor"
             value={s.providerId}
             onChange={(ev) => {
               const p = providers.find((x) => x.id === ev.target.value)!;

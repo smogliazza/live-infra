@@ -293,7 +293,7 @@ export function FlowCanvas() {
           <MiniMap
             pannable
             zoomable
-            nodeColor={(n) => (n.type === 'boundary' ? 'rgba(80,100,130,0.15)' : statusColor(nodeVisualStatus(engine, n.id)))}
+            nodeColor={(n) => (n.type === 'boundary' ? 'rgba(90,115,150,0.25)' : minimapColor(nodeVisualStatus(engine, n.id)))}
             position="top-left"
             maskColor="rgba(8,11,16,0.6)"
             style={{ background: '#0d1219', width: 150, height: 90 }}
@@ -303,6 +303,10 @@ export function FlowCanvas() {
       </div>
     </CanvasContext.Provider>
   );
+}
+
+function minimapColor(s: VisualStatus): string {
+  return s === 'idle' ? '#7b8aa0' : statusColor(s);
 }
 
 function statusColor(s: VisualStatus): string {

@@ -51,5 +51,11 @@ export const glossary: Record<string, string> = {
   Stampede: 'Avalancha de misses simultáneos sobre la misma clave que sobrecarga la base de datos.',
   Asíncrono: 'El llamador no espera el resultado; la latencia del consumidor no afecta a la respuesta.',
   'At-least-once': 'Garantía de entrega en la que un mensaje puede llegar más de una vez: los consumidores deben ser idempotentes.',
+  Anycast: 'Varias ubicaciones anuncian la misma IP; el enrutado de Internet lleva al usuario a la más cercana.',
+  'Backend pool': 'Conjunto de destinos (IPs, VMs, Pods) a los que Application Gateway reparte el tráfico.',
+  'Node pool': 'Grupo de nodos de AKS con la misma configuración de VM; separa sistema y aplicaciones.',
+  'Zone-redundant HA': 'Réplica standby síncrona en otra zona de disponibilidad con failover automático.',
+  'Private endpoint': 'Interfaz de red con IP privada en tu VNet/VPC que da acceso a un servicio PaaS sin salir a Internet.',
+  'Anomaly scoring': 'Modo de WAF en el que cada regla suma puntos y se bloquea al superar un umbral, en vez de bloquear por una sola regla.',
   DLQ: 'Dead-letter queue: cola donde acaban los mensajes que fallan repetidamente.',
 };

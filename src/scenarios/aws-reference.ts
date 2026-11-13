@@ -3,6 +3,7 @@
  * Todo es declarativo: el motor lo interpreta, la UI lo dibuja.
  */
 import type { ScenarioDef } from '../model/schemas';
+import { CART_QUERY, shopRequest, shopStages } from './shop-app';
 
 const delivery = (id: string, source: string, target: string, protocol: string, port?: string, advanced = false) => ({
   id,
@@ -45,14 +46,15 @@ export const awsReferenceScenario: ScenarioDef = {
     { id: 'delivery', kind: 'delivery', label: 'Toolchain de delivery (SaaS / CI)', x: 0, y: 900, width: 1660, height: 190 },
   ],
   nodes: [
-    { id: 'client', label: 'Cliente', service: 'browser-client', boundary: 'internet', x: 60, y: 250, advanced: false },
-    { id: 'resolver', label: 'Resolver DNS', service: 'recursive-resolver', boundary: 'internet', x: 60, y: 440, advanced: true },
-    { id: 'route53', label: 'Route 53', service: 'aws-route53', boundary: 'edge', x: 320, y: 440, advanced: false },
-    { id: 'cloudfront', label: 'CloudFront', service: 'aws-cloudfront', boundary: 'edge', x: 320, y: 250, advanced: false },
-    { id: 'waf', label: 'AWS WAF', service: 'aws-waf', boundary: 'edge', x: 320, y: 345, advanced: false },
-    { id: 'alb', label: 'ALB', service: 'aws-alb', boundary: 'public', x: 600, y: 300, advanced: false },
+    { id: 'client', intent: 'client', label: 'Cliente', service: 'browser-client', boundary: 'internet', x: 60, y: 250, advanced: false },
+    { id: 'resolver', intent: 'dns-resolver', label: 'Resolver DNS', service: 'recursive-resolver', boundary: 'internet', x: 60, y: 440, advanced: true },
+    { id: 'route53', intent: 'dns-authoritative', label: 'Route 53', service: 'aws-route53', boundary: 'edge', x: 320, y: 440, advanced: false },
+    { id: 'cloudfront', intent: 'edge-cdn', label: 'CloudFront', service: 'aws-cloudfront', boundary: 'edge', x: 320, y: 250, advanced: false },
+    { id: 'waf', intent: 'waf', label: 'AWS WAF', service: 'aws-waf', boundary: 'edge', x: 320, y: 345, advanced: false },
+    { id: 'alb', intent: 'l7-load-balancer', label: 'ALB', service: 'aws-alb', boundary: 'public', x: 600, y: 300, advanced: false },
     {
       id: 'api',
+      intent: 'microservice',
       label: 'api',
       service: 'k8s-microservice',
       boundary: 'ns-shop',
@@ -63,6 +65,7 @@ export const awsReferenceScenario: ScenarioDef = {
     },
     {
       id: 'catalog',
+      intent: 'microservice',
       label: 'catalog',
       service: 'k8s-microservice',
       boundary: 'ns-shop',
@@ -73,6 +76,7 @@ export const awsReferenceScenario: ScenarioDef = {
     },
     {
       id: 'orders',
+      intent: 'microservice',
       label: 'orders',
       service: 'k8s-microservice',
       boundary: 'ns-shop',
@@ -81,18 +85,18 @@ export const awsReferenceScenario: ScenarioDef = {
       advanced: false,
       workload: { deployment: 'orders', namespace: 'shop', replicas: 2, image: 'shop/orders', version: '4.1.7' },
     },
-    { id: 'argocd', label: 'Argo CD', service: 'argocd', boundary: 'ns-argocd', x: 1215, y: 310, advanced: false },
-    { id: 'redis', label: 'ElastiCache', service: 'aws-elasticache-redis', boundary: 'private-data', x: 1210, y: 710, advanced: false },
-    { id: 'rds', label: 'RDS PostgreSQL', service: 'aws-rds-postgres', boundary: 'private-data', x: 960, y: 710, advanced: false },
-    { id: 'eks', label: 'EKS control plane', service: 'aws-eks-control-plane', boundary: 'regional', x: 1460, y: 240, advanced: false },
-    { id: 'ecr', label: 'ECR', service: 'aws-ecr', boundary: 'regional', x: 1460, y: 420, advanced: false },
-    { id: 'sqs', label: 'SQS', service: 'aws-sqs', boundary: 'regional', x: 1460, y: 600, advanced: true },
-    { id: 'dev', label: 'Developer', service: 'developer', boundary: 'delivery', x: 40, y: 960, advanced: false },
-    { id: 'gitlab', label: 'GitLab repo', service: 'gitlab-repo', boundary: 'delivery', x: 270, y: 960, advanced: false },
-    { id: 'ci', label: 'GitLab CI', service: 'gitlab-ci', boundary: 'delivery', x: 520, y: 960, advanced: false },
-    { id: 'gitops', label: 'Repo GitOps', service: 'gitops-repo', boundary: 'delivery', x: 830, y: 960, advanced: false },
-    { id: 'terraform', label: 'Terraform', service: 'terraform', boundary: 'delivery', x: 1110, y: 960, advanced: false },
-    { id: 'tfstate', label: 'S3 tfstate', service: 'aws-s3-tfstate', boundary: 'delivery', x: 1400, y: 960, advanced: true },
+    { id: 'argocd', intent: 'gitops-controller', label: 'Argo CD', service: 'argocd', boundary: 'ns-argocd', x: 1215, y: 310, advanced: false },
+    { id: 'redis', intent: 'cache', label: 'ElastiCache', service: 'aws-elasticache-redis', boundary: 'private-data', x: 1210, y: 710, advanced: false },
+    { id: 'rds', intent: 'database', label: 'RDS PostgreSQL', service: 'aws-rds-postgres', boundary: 'private-data', x: 960, y: 710, advanced: false },
+    { id: 'eks', intent: 'k8s-control-plane', label: 'EKS control plane', service: 'aws-eks-control-plane', boundary: 'regional', x: 1460, y: 240, advanced: false },
+    { id: 'ecr', intent: 'registry', label: 'ECR', service: 'aws-ecr', boundary: 'regional', x: 1460, y: 420, advanced: false },
+    { id: 'sqs', intent: 'queue', label: 'SQS', service: 'aws-sqs', boundary: 'regional', x: 1460, y: 600, advanced: true },
+    { id: 'dev', intent: 'developer', label: 'Developer', service: 'developer', boundary: 'delivery', x: 40, y: 960, advanced: false },
+    { id: 'gitlab', intent: 'source-repo', label: 'GitLab repo', service: 'gitlab-repo', boundary: 'delivery', x: 270, y: 960, advanced: false },
+    { id: 'ci', intent: 'ci', label: 'GitLab CI', service: 'gitlab-ci', boundary: 'delivery', x: 520, y: 960, advanced: false },
+    { id: 'gitops', intent: 'gitops-repo', label: 'Repo GitOps', service: 'gitops-repo', boundary: 'delivery', x: 830, y: 960, advanced: false },
+    { id: 'terraform', intent: 'iac', label: 'Terraform', service: 'terraform', boundary: 'delivery', x: 1110, y: 960, advanced: false },
+    { id: 'tfstate', intent: 'iac-state', label: 'S3 tfstate', service: 'aws-s3-tfstate', boundary: 'delivery', x: 1400, y: 960, advanced: true },
   ],
   edges: [
     // ---- data plane (norte-sur)
@@ -156,98 +160,21 @@ export const awsReferenceScenario: ScenarioDef = {
     delivery('d-tf-eks', 'terraform', 'eks', 'AWS API (eks)', '443', true),
     delivery('d-tf-rds', 'terraform', 'rds', 'AWS API (rds)', '443', true),
   ],
-  request: {
-    host: 'shop.example.com',
-    path: '/api/cart/summary',
-    method: 'GET',
-    root: {
-      id: 'client',
-      component: 'client',
-      operation: 'GET /api/cart/summary',
-      processMs: [0.2, 0.5],
-      sequential: true,
-      children: [
-        {
-          id: 'dns',
-          component: 'resolver',
-          operation: 'DNS A shop.example.com',
-          processMs: [0.2, 0.5],
-          // Probabilidad de que el registro siga en cache (dentro del TTL).
-          cacheHitRatio: 0.6,
-          sequential: true,
-          children: [
-            { id: 'dns-auth', component: 'route53', operation: 'DNS authoritative answer', processMs: [0.3, 0.8], when: 'previous-cache-miss', responseBytes: 120 },
-          ],
-          responseBytes: 120,
-        },
-        {
-          id: 'edge',
-          component: 'cloudfront',
-          operation: 'GET /api/cart/summary',
-          processMs: [0.8, 1.6],
-          sequential: true,
-          children: [
-            { id: 'waf', component: 'waf', operation: 'WAF web ACL evaluation', processMs: [0.2, 0.5], responseBytes: 0 },
-            {
-              id: 'alb',
-              component: 'alb',
-              operation: 'listener HTTPS:443',
-              processMs: [0.4, 0.9],
-              children: [
-                {
-                  id: 'api',
-                  component: 'api',
-                  operation: 'GET /api/cart/summary',
-                  processMs: [1, 2.5],
-                  children: [
-                    {
-                      id: 'catalog',
-                      component: 'catalog',
-                      operation: 'GET /products?ids=42,77',
-                      processMs: [0.8, 1.8],
-                      timeoutMs: 250,
-                      retries: 1,
-                      sequential: true,
-                      children: [
-                        { id: 'cache', component: 'redis', operation: 'GET product:42,77', processMs: [0.1, 0.3], cacheHitRatio: 0.8, responseBytes: 900 },
-                        { id: 'catalog-db', component: 'rds', operation: 'SELECT * FROM products WHERE id = ANY($1)', processMs: [2, 6], when: 'previous-cache-miss', responseBytes: 900 },
-                      ],
-                    },
-                    {
-                      id: 'orders',
-                      component: 'orders',
-                      operation: 'GET /carts/c-1029',
-                      processMs: [0.8, 1.8],
-                      timeoutMs: 400,
-                      sequential: true,
-                      onChildError: 503,
-                      children: [
-                        { id: 'orders-db', component: 'rds', operation: 'SELECT * FROM cart_items WHERE cart_id = $1', processMs: [1.5, 4], timeoutMs: 300, responseBytes: 600 },
-                        { id: 'orders-sqs', component: 'sqs', operation: 'SendMessage cart.viewed', processMs: [3, 6], async: true },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-  },
+  request: shopRequest({
+    client: 'client',
+    resolver: 'resolver',
+    dnsAuthoritative: 'route53',
+    edge: 'cloudfront',
+    waf: 'waf',
+    loadBalancer: 'alb',
+    cache: 'redis',
+    database: 'rds',
+    queue: 'sqs',
+  }),
   delivery: {
     pipelineEngine: 'GitLab CI/CD',
     services: ['api', 'catalog', 'orders'],
-    stages: [
-      { id: 'checkout', name: 'checkout', component: 'ci', durationS: [5, 9], perService: false, kind: 'ci' },
-      { id: 'lint', name: 'lint', component: 'ci', durationS: [10, 18], perService: false, kind: 'ci' },
-      { id: 'unit-tests', name: 'unit tests', component: 'ci', durationS: [30, 55], perService: false, kind: 'ci' },
-      { id: 'sast', name: 'SAST + dependency scan', component: 'ci', durationS: [20, 35], perService: false, kind: 'scan' },
-      { id: 'build', name: 'docker build', component: 'ci', durationS: [45, 90], perService: true, kind: 'build' },
-      { id: 'image-scan', name: 'image scan', component: 'ci', durationS: [15, 30], perService: true, kind: 'scan' },
-      { id: 'publish', name: 'push a ECR', component: 'ci', durationS: [8, 16], perService: true, kind: 'publish' },
-      { id: 'gitops-update', name: 'actualizar GitOps', component: 'ci', durationS: [4, 8], perService: false, kind: 'gitops' },
-    ],
+    stages: shopStages('ci', 'ECR'),
     sourceRepoComponent: 'gitlab',
     gitopsRepoComponent: 'gitops',
     argoComponent: 'argocd',
@@ -258,11 +185,14 @@ export const awsReferenceScenario: ScenarioDef = {
     argoDetectS: [3, 6],
     rollout: { maxSurge: 1, maxUnavailable: 0, progressDeadlineS: 120 },
     smokeTestComponent: 'ci',
+    clusterNodeNames: ['ip-10-0-34-17.ec2.internal', 'ip-10-0-41-202.ec2.internal', 'ip-10-0-55-89.ec2.internal'],
     terraform: {
       component: 'terraform',
       stateBackend: 's3 (use_lockfile)',
       stateComponent: 'tfstate',
       resources: ['alb', 'eks', 'rds'],
+      lockErrorMessage: 'el lock file terraform.tfstate.tflock ya existe en S3 (otro apply en curso, ID 7f3c…, who: ci@runner-12)',
+      driftMessage: 'aws_security_group_rule: ingreso 0.0.0.0/0:22 añadido manualmente desde la consola (drift).',
     },
   },
   faults: [
@@ -276,7 +206,7 @@ export const awsReferenceScenario: ScenarioDef = {
       effect: { type: 'reject', status: 403, reason: 'WAF BLOCK: AWSManagedRulesCommonRuleSet/CrossSiteScripting_QUERYARGUMENTS' },
     },
     {
-      id: 'alb-no-healthy-targets',
+      id: 'lb-no-healthy-targets',
       title: 'ALB sin targets sanos (503)',
       domain: 'request',
       component: 'alb',
@@ -307,7 +237,7 @@ export const awsReferenceScenario: ScenarioDef = {
       title: 'RDS saturada / pool agotado (503)',
       domain: 'request',
       component: 'rds',
-      operation: 'SELECT * FROM cart_items WHERE cart_id = $1',
+      operation: CART_QUERY,
       description: 'Las queries de carritos tardan +800 ms (bloqueos y pool agotado). orders tiene statement timeout de 300 ms.',
       diagnosis: 'El span db.query domina la traza; orders convierte el timeout en 503. Este 503 sí lo origina la app (target_status_code=503).',
       effect: { type: 'latency', addMs: 800 },
@@ -366,5 +296,10 @@ export const awsReferenceScenario: ScenarioDef = {
       diagnosis: 'El plan muestra "Objects have changed outside of Terraform" y propone revertirlo. Revisar CloudTrail para saber quién.',
       deliveryEffect: 'terraform-drift',
     },
+  ],
+  observabilityNotes: [
+    'CloudWatch recibe métricas push de los servicios gestionados (namespace AWS/ApplicationELB: RequestCount, TargetResponseTime, HTTPCode_ELB_5XX_Count vs HTTPCode_Target_5XX_Count…) y, con Container Insights, de EKS.',
+    'Amazon Managed Service for Prometheus puede recibir métricas de los Pods vía remote_write; Amazon Managed Grafana las consulta.',
+    'Trazas: OpenTelemetry (ADOT) exportando a AWS X-Ray u otro backend; logs de contenedores a CloudWatch Logs.',
   ],
 };
