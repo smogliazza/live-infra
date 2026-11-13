@@ -9,7 +9,7 @@ Cloud Flow Lab es un sitio **100% estático**: no necesita backend, secretos ni 
 | Framework preset | Vite (o "None") |
 | Build command | `npm ci && npm run build` |
 | Output directory | `dist` |
-| Node.js | 20 o superior (variable `NODE_VERSION=22` si hace falta) |
+| Node.js | 22 (fijado en `.node-version`) |
 
 `vite.config.ts` usa `base: './'`, así que el sitio funciona tanto en la raíz como en un subpath. `public/_headers` añade cabeceras de seguridad (CSP, `X-Content-Type-Options`, etc.).
 
@@ -36,6 +36,15 @@ Requiere autenticarte con Wrangler en tu máquina (o un API token en CI, guardad
 - Ten en cuenta el **TTL**: baja el TTL antes de cambiar registros para que los resolvers recursivos dejen de cachear el valor antiguo antes (exactamente lo que enseña el escenario NXDOMAIN).
 
 ## 5. Sobre DuckDNS
+
+**No sirve para apuntar a Cloudflare Pages.** Un dominio personalizado de Pages en un DNS externo necesita un registro **CNAME** hacia `<proyecto>.pages.dev` (y antes hay que dar de alta el dominio en el dashboard de Pages). DuckDNS sólo gestiona registros A/AAAA (y TXT) de sus subdominios, sin CNAME. Un registro A hacia una IP de Cloudflare tampoco funciona: Cloudflare no sabría a qué proyecto corresponde el nombre.
+
+Opciones que sí funcionan:
+
+1. Usar la URL gratuita `https://<proyecto>.pages.dev` (HTTPS incluido).
+2. Usar un dominio propio con la zona en Cloudflare (o un subdominio con CNAME en tu proveedor DNS).
+
+Contexto general:
 
 DuckDNS ofrece subdominios dinámicos (`<nombre>.duckdns.org`) que apuntan a una IP. Sirve para exponer un host con IP cambiante, pero:
 
