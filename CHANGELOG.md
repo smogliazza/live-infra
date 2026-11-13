@@ -4,6 +4,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-13
+
+### Añadido
+- Perfil DigitalOcean con Cloudflare como edge externo, Network Load Balancer L4 y Gateway API gestionado (Cilium/Envoy) en DOKS; DOCR, Managed PostgreSQL, Managed Valkey, Managed Kafka, GitHub Actions y Spaces (backend s3).
+- Catálogo Cloudflare reutilizable; componente genérico `github-actions`; glosario Gateway API, L4, Consumer lag.
+- Intención opcional `ingress-gateway`, aspecto de comparación "Gateway L7 dentro del cluster" y notas DigitalOcean en todos los aspectos.
+
+### Cambiado
+- Intent `l7-load-balancer` → `load-balancer`.
+
 ## [0.4.0] - 2026-11-13
 
 ### Añadido

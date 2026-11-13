@@ -69,7 +69,8 @@ export type InspectorContent = z.infer<typeof InspectorContent>;
 export const CatalogService = z.object({
   id: z.string(),
   name: z.string(),
-  provider: z.union([ProviderId, z.literal('generic')]),
+  /** 'cloudflare': servicio de terceros usado como edge externo en algunos perfiles. */
+  provider: z.union([ProviderId, z.literal('generic'), z.literal('cloudflare')]),
   category: z.string(),
   layer: Layer,
   plane: Plane,
@@ -99,7 +100,9 @@ export const Intent = z.enum([
   'dns-authoritative',
   'edge-cdn',
   'waf',
-  'l7-load-balancer',
+  'load-balancer',
+  /** Gateway/Ingress L7 dentro del cluster (opcional: no todos los diseños lo necesitan). */
+  'ingress-gateway',
   'microservice',
   'gitops-controller',
   'cache',

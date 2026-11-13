@@ -11,6 +11,9 @@ import { azureServices } from './providers/azure/services';
 import { azureReferenceScenario } from '../scenarios/azure-reference';
 import { gcpServices } from './providers/gcp/services';
 import { gcpReferenceScenario } from '../scenarios/gcp-reference';
+import { cloudflareServices } from './providers/cloudflare/services';
+import { digitaloceanServices } from './providers/digitalocean/services';
+import { digitaloceanReferenceScenario } from '../scenarios/digitalocean-reference';
 
 function buildProfile(input: ProviderProfile): ProviderProfile {
   const profile = ProviderProfile.parse(input);
@@ -43,6 +46,13 @@ export const providers: ProviderProfile[] = [
     shortName: 'GCP',
     services: [...genericServices, ...gcpServices],
     scenarios: [gcpReferenceScenario],
+  }),
+  buildProfile({
+    id: 'digitalocean',
+    name: 'DigitalOcean',
+    shortName: 'DigitalOcean',
+    services: [...genericServices, ...cloudflareServices, ...digitaloceanServices],
+    scenarios: [digitaloceanReferenceScenario],
   }),
 ];
 

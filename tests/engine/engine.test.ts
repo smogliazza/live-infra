@@ -5,14 +5,14 @@ import type { SimulationEvent } from '../../src/engine/events';
 import { buildTrace, computeMetrics } from '../../src/engine/observability';
 
 /** Status que genera el propio load balancer cuando no hay destinos sanos. */
-const LB_NO_TARGETS_STATUS: Record<string, number> = { aws: 503, azure: 502, gcp: 502 };
+const LB_NO_TARGETS_STATUS: Record<string, number> = { aws: 503, azure: 502, gcp: 502, digitalocean: 503 };
 
 describe.each(providers.map((p) => [p.id, p] as const))('perfil %s', (_id, profile) => {
   const scenario = profile.scenarios[0]!;
   const catalog = profile.services;
   /** Componente por intención arquitectónica (los ids difieren por proveedor). */
   const byIntent = (intent: string) => scenario.nodes.find((n) => n.intent === intent)!.id;
-  const LB = byIntent('l7-load-balancer');
+  const LB = byIntent('load-balancer');
   const DB = byIntent('database');
   const CACHE = byIntent('cache');
 
@@ -44,7 +44,7 @@ describe.each(providers.map((p) => [p.id, p] as const))('perfil %s', (_id, profi
       const { e, done } = singleRequest();
       expect(done.payload.status).toBe(200);
       const visited = new Set(e.log.filter((ev) => ev.type === 'span.start').map((ev) => ev.componentId));
-      for (const c of ['dns-resolver', 'edge-cdn', 'waf', 'l7-load-balancer', 'cache', 'database'].map(byIntent).concat(['api', 'catalog', 'orders'])) {
+      for (const c of ['dns-resolver', 'edge-cdn', 'waf', 'load-balancer', 'cache', 'database'].map(byIntent).concat(['api', 'catalog', 'orders'])) {
         expect(visited.has(c), c).toBe(true);
       }
     });
@@ -335,12 +335,15 @@ describe.each(providers.map((p) => [p.id, p] as const))('perfil %s', (_id, profi
   });
 });
 
+const OPTIONAL_INTENTS: string[] = ['ingress-gateway'];
+
 describe('comparabilidad entre perfiles', () => {
   it('todos los perfiles exponen las mismas intenciones, workloads y fallos', () => {
     const shape = (p: (typeof providers)[number]) => {
       const sc = p.scenarios[0]!;
       return {
-        intents: [...new Set(sc.nodes.map((n) => n.intent))].sort(),
+        // Las intenciones opcionales (p.ej. un gateway L7 en el cluster) pueden faltar.
+        intents: [...new Set(sc.nodes.map((n) => n.intent))].filter((i) => !OPTIONAL_INTENTS.includes(i)).sort(),
         workloads: sc.nodes.filter((n) => n.workload).map((n) => n.id).sort(),
         faults: sc.faults.map((f) => f.id).sort(),
       };

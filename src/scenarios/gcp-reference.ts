@@ -61,7 +61,7 @@ export const gcpReferenceScenario: ScenarioDef = {
     { id: 'clouddns', intent: 'dns-authoritative', label: 'Cloud DNS', service: 'gcp-cloud-dns', boundary: 'edge', x: 320, y: 440, advanced: false },
     { id: 'gfe', intent: 'edge-cdn', label: 'External ALB (GFE)', service: 'gcp-ext-alb-frontend', boundary: 'edge', x: 320, y: 250, advanced: false },
     { id: 'armor', intent: 'waf', label: 'Cloud Armor', service: 'gcp-cloud-armor', boundary: 'edge', x: 320, y: 345, advanced: false },
-    { id: 'backend', intent: 'l7-load-balancer', label: 'Backend service (NEG)', service: 'gcp-backend-service-neg', boundary: 'lb-global', x: 600, y: 300, advanced: false },
+    { id: 'backend', intent: 'load-balancer', label: 'Backend service (NEG)', service: 'gcp-backend-service-neg', boundary: 'lb-global', x: 600, y: 300, advanced: false },
     { id: 'api', intent: 'microservice', label: 'api', service: 'k8s-microservice', boundary: 'ns-shop', x: 840, y: 380, advanced: false, workload: workload('api', 3, '2.3.0') },
     { id: 'catalog', intent: 'microservice', label: 'catalog', service: 'k8s-microservice', boundary: 'ns-shop', x: 1010, y: 290, advanced: false, workload: workload('catalog', 3, '1.8.3') },
     { id: 'orders', intent: 'microservice', label: 'orders', service: 'k8s-microservice', boundary: 'ns-shop', x: 1010, y: 480, advanced: false, workload: workload('orders', 2, '4.1.7') },

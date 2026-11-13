@@ -4,6 +4,11 @@ Separación explícita entre lo **implementado** y lo **pendiente**. Basado en e
 
 ## ✅ Implementado
 
+**v0.5 — Perfil DigitalOcean (+ Cloudflare)**
+- Perfil **DigitalOcean**: Cloudflare como edge externo (DNS proxied, proxy, WAF), Network Load Balancer L4, Gateway API gestionado de DOKS (Cilium/Envoy), DOKS, DOCR, Managed PostgreSQL, Managed Valkey, Managed Kafka, GitHub Actions, Spaces con backend s3.
+- Catálogo Cloudflare reutilizable (`src/catalog/providers/cloudflare`) para futuras variantes Cloudflare de otros perfiles.
+- Intención opcional `ingress-gateway` y salto de gateway opcional en la app compartida; intent `l7-load-balancer` renombrado a `load-balancer` (no siempre es L7).
+
 **v0.4 — Perfil Google Cloud**
 - Perfil **Google Cloud**: Cloud DNS, Application Load Balancer externo global (GFE + Cloud CDN), Cloud Armor, backend service con NEGs (container-native) vía Gateway API, GKE VPC-native, Artifact Registry, Cloud SQL, Memorystore, Pub/Sub, GitHub + Cloud Build, backend gcs.
 - Notas de comparación GCP en todos los aspectos; suite del motor y E2E para GCP.
@@ -46,8 +51,10 @@ Separación explícita entre lo **implementado** y lo **pendiente**. Basado en e
 **Fase 2 — Cinco perfiles**
 - [x] Perfil Azure.
 - [x] Perfil Google Cloud.
-- [ ] Perfiles DigitalOcean y OCI (catálogo + escenario de referencia), validados contra documentación oficial.
-- [ ] Variante con Cloudflare como edge externo donde aporte valor (DigitalOcean, y opcional en el resto).
+- [x] Perfil DigitalOcean (con Cloudflare como edge).
+- [ ] Perfil OCI (catálogo + escenario de referencia), validado contra documentación oficial.
+- [x] Cloudflare como edge en DigitalOcean.
+- [ ] Variante Cloudflare opcional para AWS, Azure, GCP y OCI (el catálogo ya es reutilizable).
 - [ ] Cloud Run como arquitectura alternativa serverless en GCP.
 - [ ] Arquitectura mínima + avanzada expandible por perfil (expand/collapse por grupo).
 

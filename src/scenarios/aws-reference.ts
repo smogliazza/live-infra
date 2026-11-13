@@ -51,7 +51,7 @@ export const awsReferenceScenario: ScenarioDef = {
     { id: 'route53', intent: 'dns-authoritative', label: 'Route 53', service: 'aws-route53', boundary: 'edge', x: 320, y: 440, advanced: false },
     { id: 'cloudfront', intent: 'edge-cdn', label: 'CloudFront', service: 'aws-cloudfront', boundary: 'edge', x: 320, y: 250, advanced: false },
     { id: 'waf', intent: 'waf', label: 'AWS WAF', service: 'aws-waf', boundary: 'edge', x: 320, y: 345, advanced: false },
-    { id: 'alb', intent: 'l7-load-balancer', label: 'ALB', service: 'aws-alb', boundary: 'public', x: 600, y: 300, advanced: false },
+    { id: 'alb', intent: 'load-balancer', label: 'ALB', service: 'aws-alb', boundary: 'public', x: 600, y: 300, advanced: false },
     {
       id: 'api',
       intent: 'microservice',

@@ -61,7 +61,7 @@ export const azureReferenceScenario: ScenarioDef = {
     { id: 'azdns', intent: 'dns-authoritative', label: 'Azure DNS', service: 'azure-dns', boundary: 'edge', x: 320, y: 440, advanced: false },
     { id: 'frontdoor', intent: 'edge-cdn', label: 'Front Door', service: 'azure-front-door', boundary: 'edge', x: 320, y: 250, advanced: false },
     { id: 'waf', intent: 'waf', label: 'WAF (Front Door)', service: 'azure-waf-frontdoor', boundary: 'edge', x: 320, y: 345, advanced: false },
-    { id: 'appgw', intent: 'l7-load-balancer', label: 'App Gateway', service: 'azure-app-gateway', boundary: 'snet-appgw', x: 600, y: 300, advanced: false },
+    { id: 'appgw', intent: 'load-balancer', label: 'App Gateway', service: 'azure-app-gateway', boundary: 'snet-appgw', x: 600, y: 300, advanced: false },
     { id: 'api', intent: 'microservice', label: 'api', service: 'k8s-microservice', boundary: 'ns-shop', x: 840, y: 380, advanced: false, workload: workload('api', 3, '2.3.0') },
     { id: 'catalog', intent: 'microservice', label: 'catalog', service: 'k8s-microservice', boundary: 'ns-shop', x: 1010, y: 290, advanced: false, workload: workload('catalog', 3, '1.8.3') },
     { id: 'orders', intent: 'microservice', label: 'orders', service: 'k8s-microservice', boundary: 'ns-shop', x: 1010, y: 480, advanced: false, workload: workload('orders', 2, '4.1.7') },

@@ -16,11 +16,50 @@ export interface ShopComponents {
   cache: string;
   database: string;
   queue: string;
-  /** Qué hace el LB L7 en este proveedor (p.ej. listener vs backend service). */
+  /** Qué hace el LB en este proveedor (p.ej. listener vs backend service). */
   loadBalancerOperation?: string;
+  /**
+   * Gateway L7 dentro del cluster entre el LB y api (p.ej. cuando el LB del
+   * proveedor es L4 y el enrutado HTTP lo hace un Gateway API en el cluster).
+   */
+  gateway?: { component: string; operation: string };
 }
 
 export function shopRequest(c: ShopComponents): ScenarioDef['request'] {
+  const apiStep: FlowStep = {
+    id: 'api',
+    component: 'api',
+    operation: 'GET /api/cart/summary',
+    processMs: [1, 2.5],
+    children: [
+      {
+        id: 'catalog',
+        component: 'catalog',
+        operation: 'GET /products?ids=42,77',
+        processMs: [0.8, 1.8],
+        timeoutMs: 250,
+        retries: 1,
+        sequential: true,
+        children: [
+          { id: 'cache', component: c.cache, operation: 'GET product:42,77', processMs: [0.1, 0.3], cacheHitRatio: 0.8, responseBytes: 900 },
+          { id: 'catalog-db', component: c.database, operation: 'SELECT * FROM products WHERE id = ANY($1)', processMs: [2, 6], when: 'previous-cache-miss', responseBytes: 900 },
+        ],
+      },
+      {
+        id: 'orders',
+        component: 'orders',
+        operation: 'GET /carts/c-1029',
+        processMs: [0.8, 1.8],
+        timeoutMs: 400,
+        sequential: true,
+        onChildError: 503,
+        children: [
+          { id: 'orders-db', component: c.database, operation: CART_QUERY, processMs: [1.5, 4], timeoutMs: 300, responseBytes: 600 },
+          { id: 'orders-queue', component: c.queue, operation: 'publish cart.viewed', processMs: [3, 6], async: true },
+        ],
+      },
+    ],
+  };
   const root: FlowStep = {
     id: 'client',
     component: c.client,
@@ -36,7 +75,9 @@ export function shopRequest(c: ShopComponents): ScenarioDef['request'] {
         // Probabilidad de que el registro siga en cache (dentro del TTL).
         cacheHitRatio: 0.6,
         sequential: true,
-        children: [{ id: 'dns-auth', component: c.dnsAuthoritative, operation: 'DNS authoritative answer', processMs: [0.3, 0.8], when: 'previous-cache-miss', responseBytes: 120 }],
+        children: [
+          { id: 'dns-auth', component: c.dnsAuthoritative, operation: 'DNS authoritative answer', processMs: [0.3, 0.8], when: 'previous-cache-miss', responseBytes: 120 },
+        ],
         responseBytes: 120,
       },
       {
@@ -52,48 +93,17 @@ export function shopRequest(c: ShopComponents): ScenarioDef['request'] {
             component: c.loadBalancer,
             operation: c.loadBalancerOperation ?? 'listener HTTPS:443',
             processMs: [0.4, 0.9],
-            children: [
-              {
-                id: 'api',
-                component: 'api',
-                operation: 'GET /api/cart/summary',
-                processMs: [1, 2.5],
-                children: [
-                  {
-                    id: 'catalog',
-                    component: 'catalog',
-                    operation: 'GET /products?ids=42,77',
-                    processMs: [0.8, 1.8],
-                    timeoutMs: 250,
-                    retries: 1,
-                    sequential: true,
-                    children: [
-                      { id: 'cache', component: c.cache, operation: 'GET product:42,77', processMs: [0.1, 0.3], cacheHitRatio: 0.8, responseBytes: 900 },
-                      { id: 'catalog-db', component: c.database, operation: 'SELECT * FROM products WHERE id = ANY($1)', processMs: [2, 6], when: 'previous-cache-miss', responseBytes: 900 },
-                    ],
-                  },
-                  {
-                    id: 'orders',
-                    component: 'orders',
-                    operation: 'GET /carts/c-1029',
-                    processMs: [0.8, 1.8],
-                    timeoutMs: 400,
-                    sequential: true,
-                    onChildError: 503,
-                    children: [
-                      { id: 'orders-db', component: c.database, operation: CART_QUERY, processMs: [1.5, 4], timeoutMs: 300, responseBytes: 600 },
-                      { id: 'orders-queue', component: c.queue, operation: 'publish cart.viewed', processMs: [3, 6], async: true },
-                    ],
-                  },
-                ],
-              },
-            ],
+            children: c.gateway ? [gatewayStep(c.gateway, apiStep)] : [apiStep],
           },
         ],
       },
     ],
   };
   return { host: 'shop.example.com', path: '/api/cart/summary', method: 'GET', root };
+}
+
+function gatewayStep(g: NonNullable<ShopComponents['gateway']>, api: FlowStep): FlowStep {
+  return { id: 'gateway', component: g.component, operation: g.operation, processMs: [0.3, 0.8], children: [api] };
 }
 
 export const CART_QUERY = 'SELECT * FROM cart_items WHERE cart_id = $1';

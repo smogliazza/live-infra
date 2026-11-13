@@ -71,6 +71,19 @@ test.describe('Cloud Flow Lab', () => {
     await expect(page.getByTestId('inspector')).toContainText('container-native');
   });
 
+  test('perfil DigitalOcean: Cloudflare como edge y gateway L7 en el cluster', async ({ page }) => {
+    await page.getByLabel('Proveedor', { exact: true }).selectOption('digitalocean');
+    await expect(page.getByTestId('node-gateway')).toBeVisible();
+    await page.getByTestId('open-faults').click();
+    await page.getByTestId('fault-lb-no-healthy-targets').check();
+    await page.getByLabel('Velocidad').selectOption('10');
+    await page.getByTestId('send-request').click();
+    await page.getByTestId('tab-events').click();
+    await expect(page.getByTestId('event-log')).toContainText('no healthy upstream', { timeout: 30_000 });
+    await page.getByTestId('node-cloudflare').click();
+    await expect(page.getByTestId('inspector')).toContainText('CLOUDFLARE');
+  });
+
   test('modo comparación: el mismo fallo da 503 en AWS y 502 en Azure', async ({ page }) => {
     await page.getByTestId('compare-select').selectOption('azure');
     await expect(page.getByTestId('compare-view')).toBeVisible();
