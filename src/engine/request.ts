@@ -199,15 +199,20 @@ export class RequestFlow {
         payload: { sni: e.scenario.request.host, version: 'TLSv1.3', alpn: call.edge.protocol.includes('HTTP/2') ? 'h2' : 'http/1.1' },
       });
     }
-    if (svc.layer === 'load-balancing' && call.edge?.routingRule) {
+    // La regla de enrutado pertenece al componente que decide: está en sus
+    // edges SALIENTES (p.ej. listener del LB → backend), no en el entrante.
+    for (const child of call.step.children ?? []) {
+      const out = e.edgeBetween(call.step.component, child.component);
+      if (!out?.routingRule) continue;
       e.emit({
         domain: 'request',
         type: 'lb.route',
         componentId: call.step.component,
+        edgeId: out.id,
         traceId: call.traceId,
         spanId: call.spanId,
-        message: `Regla de enrutado: ${call.edge.routingRule}`,
-        payload: { rule: call.edge.routingRule },
+        message: `Regla de enrutado: ${out.routingRule}`,
+        payload: { rule: out.routingRule, target: child.component },
       });
     }
   }

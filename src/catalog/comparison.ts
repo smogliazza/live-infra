@@ -1,0 +1,158 @@
+/**
+ * Contenido del modo comparación. Se compara la INTENCIÓN (qué función
+ * cumple cada pieza), con notas por proveedor que explican diferencias
+ * reales. No hay puntuación de "mejor cloud": cada fila describe trade-offs.
+ *
+ * Para añadir un proveedor, añade su entrada en `notes` de cada aspecto.
+ */
+import type { Intent, ProviderId } from '../model/schemas';
+
+export interface ComparisonAspect {
+  id: string;
+  title: string;
+  /** Intención de nodo asociada (para mostrar el servicio del escenario). */
+  intent?: Intent;
+  /** Qué hay que mirar al comparar este aspecto. */
+  question: string;
+  notes: Partial<Record<ProviderId, string>>;
+}
+
+export const comparisonAspects: ComparisonAspect[] = [
+  {
+    id: 'dns',
+    title: 'DNS autoritativo',
+    intent: 'dns-authoritative',
+    question: '¿Cómo apunta el nombre al edge?',
+    notes: {
+      aws: 'Alias record A/AAAA de Route 53 hacia la distribución de CloudFront (funciona también en el apex).',
+      azure: 'CNAME al endpoint *.azurefd.net de Front Door; en el apex, alias record de Azure DNS al perfil. El dominio personalizado se valida con un TXT _dnsauth.',
+    },
+  },
+  {
+    id: 'edge',
+    title: 'Edge / CDN',
+    intent: 'edge-cdn',
+    question: '¿Dónde termina TLS y cómo se protege el origen?',
+    notes: {
+      aws: 'CloudFront termina TLS (certificado ACM en us-east-1). Proteger el origen: prefix list gestionada de CloudFront en el security group del ALB y/o header secreto.',
+      azure: 'Front Door termina TLS. Proteger el origen: service tag AzureFrontDoor.Backend + validar el header X-Azure-FDID (el service tag solo no basta: lo comparten otros clientes).',
+    },
+  },
+  {
+    id: 'waf',
+    title: 'WAF',
+    intent: 'waf',
+    question: '¿Qué tier hace falta y cómo responde un bloqueo?',
+    notes: {
+      aws: 'AWS WAF web ACL asociada a CloudFront; managed rule groups disponibles. Bloqueo → 403 por defecto (respuesta personalizable).',
+      azure: 'Política WAF de Front Door. Los managed rule sets (DRS, bots) requieren Front Door Premium; Standard sólo custom rules. Bloqueo → 403 "The request is blocked." por defecto.',
+    },
+  },
+  {
+    id: 'lb',
+    title: 'Load balancer L7 → Pods',
+    intent: 'l7-load-balancer',
+    question: '¿Cómo llega el tráfico al Pod y qué error da sin destinos sanos?',
+    notes: {
+      aws: 'ALB provisionado por el AWS Load Balancer Controller; con target-type ip registra IPs de Pod (VPC CNI). Sin targets sanos → 503 generado por el ALB.',
+      azure: 'Application Gateway v2 configurado por AGIC (o Application Gateway for Containers); requiere subnet dedicado. Sin miembros sanos en el backend pool → 502.',
+    },
+  },
+  {
+    id: 'network',
+    title: 'Red privada',
+    question: '¿Cómo se segmenta la red?',
+    notes: {
+      aws: 'VPC regional; cada subnet pertenece a UNA zona de disponibilidad (multi-AZ = una subnet por AZ). Security groups (stateful, por ENI) y NACLs (stateless, por subnet).',
+      azure: 'VNet regional; las subnets abarcan todas las zonas de la región. NSGs (stateful) por subnet o NIC; algunos servicios exigen subnet dedicado o delegado (Application Gateway, PostgreSQL Flexible).',
+    },
+  },
+  {
+    id: 'identity',
+    title: 'Identidad de workloads',
+    question: '¿Cómo obtiene un Pod o el CI credenciales sin secretos estáticos?',
+    notes: {
+      aws: 'IAM roles: EKS Pod Identity o IRSA para Pods; OIDC del CI → sts:AssumeRoleWithWebIdentity. Los nodos usan su instance role para hacer pull de ECR.',
+      azure: 'Microsoft Entra ID: Workload ID (federación del ServiceAccount) para Pods; service connection con workload identity federation para Azure Pipelines; la kubelet identity necesita AcrPull.',
+    },
+  },
+  {
+    id: 'k8s',
+    title: 'Kubernetes administrado',
+    intent: 'k8s-control-plane',
+    question: '¿Qué gestiona el proveedor y qué gestionas tú?',
+    notes: {
+      aws: 'EKS gestiona el control plane; nodos como managed node groups, Karpenter o Fargate. Acceso con access entries que mapean IAM → Kubernetes.',
+      azure: 'AKS gestiona el control plane (tier Free sin SLA financiado, Standard con SLA); node pools de sistema y de usuario sobre VM Scale Sets. Acceso con Entra ID + Kubernetes RBAC o Azure RBAC.',
+    },
+  },
+  {
+    id: 'registry',
+    title: 'Registry de imágenes',
+    intent: 'registry',
+    question: '¿Cómo se autoriza push y pull?',
+    notes: {
+      aws: 'ECR con políticas IAM (ecr:PutImage para CI, lectura para el rol de los nodos). Nodos privados: VPC endpoints ecr.api, ecr.dkr y gateway endpoint de S3.',
+      azure: 'ACR con Azure RBAC (AcrPush / AcrPull). Private endpoint y desactivar acceso público requieren SKU Premium.',
+    },
+  },
+  {
+    id: 'database',
+    title: 'Base de datos',
+    intent: 'database',
+    question: '¿Cómo se accede en privado y qué pasa en un failover?',
+    notes: {
+      aws: 'RDS for PostgreSQL Multi-AZ en subnets privadas; failover cambia el endpoint DNS. RDS Proxy para pooling.',
+      azure: 'PostgreSQL Flexible Server con VNet integration (subnet delegado) y HA zone-redundant; PgBouncer integrado opcional.',
+    },
+  },
+  {
+    id: 'cache',
+    title: 'Cache',
+    intent: 'cache',
+    question: '¿Cómo se conecta el cliente?',
+    notes: {
+      aws: 'ElastiCache (Valkey / Redis OSS) dentro de la VPC (puerto 6379).',
+      azure: 'Azure Managed Redis (sucesor de Azure Cache for Redis), clustered por defecto, sin VNet injection: acceso por private endpoint (puerto 10000).',
+    },
+  },
+  {
+    id: 'queue',
+    title: 'Mensajería',
+    intent: 'queue',
+    question: '¿Qué garantías ofrece la cola?',
+    notes: {
+      aws: 'SQS: cola gestionada simple (standard at-least-once o FIFO), DLQ por redrive policy; API HTTPS.',
+      azure: 'Service Bus: broker con colas y topics, sesiones, transacciones y DLQ integrada; AMQP 1.0. Private endpoint requiere tier Premium.',
+    },
+  },
+  {
+    id: 'ci',
+    title: 'CI y publicación',
+    intent: 'ci',
+    question: '¿Dónde corre el pipeline y cómo se autentica?',
+    notes: {
+      aws: 'Escenario con GitLab CI/CD (SaaS externo): id_token OIDC federado con un rol IAM.',
+      azure: 'Escenario con Azure DevOps (Repos + Pipelines): service connection con workload identity federation.',
+    },
+  },
+  {
+    id: 'iac-state',
+    title: 'State de Terraform',
+    intent: 'iac-state',
+    question: '¿Cómo se bloquea el state?',
+    notes: {
+      aws: 'Backend s3 con use_lockfile (Terraform ≥ 1.10); el locking con DynamoDB queda obsoleto.',
+      azure: 'Backend azurerm: locking nativo de Blob Storage (lease sobre el blob); sin recurso adicional.',
+    },
+  },
+  {
+    id: 'observability',
+    title: 'Métricas y logs',
+    question: '¿Dónde miras primero un 5xx?',
+    notes: {
+      aws: 'CloudWatch: HTTPCode_ELB_5XX_Count (lo genera el ALB) vs HTTPCode_Target_5XX_Count (la app); access logs del ALB con elb_status_code y target_status_code.',
+      azure: 'Azure Monitor: UnhealthyHostCount y BackendResponseStatus de Application Gateway; ApplicationGatewayAccessLog con httpStatus y serverStatus en Log Analytics (KQL).',
+    },
+  },
+];

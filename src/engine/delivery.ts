@@ -437,7 +437,8 @@ export class Delivery {
       const d0 = this.pulse(def.kubeApiComponent, svc, this.dur([1, 2]), 'schedule');
       e.after(d0, 'pod.scheduled', () => {
         if (!live()) return;
-        k8s('Scheduled', `default-scheduler asignó el pod a ip-10-0-${e.rng.int(10, 40)}-${e.rng.int(2, 250)}.ec2.internal`);
+        const nodes = def.clusterNodeNames;
+        k8s('Scheduled', `default-scheduler asignó el pod a ${nodes[e.rng.int(0, nodes.length - 1)]}`);
         pod.phase = 'ContainerCreating';
         const pullImage = (attempt: number) => {
           if (!live()) return;
@@ -687,7 +688,7 @@ export class Delivery {
       e.after(d, 'tf.lock', () => {
         if (!alive()) return;
         if (this.hasFault('terraform-state-lock')) {
-          tfEvent('terraform.lock', 'Error acquiring the state lock: lock file ya existe (otro apply en curso, ID 7f3c…, who: ci@runner-12). No forzar force-unlock sin verificar.', { held: true }, 'error');
+          tfEvent('terraform.lock', `Error acquiring the state lock: ${tf.lockErrorMessage}. No forzar force-unlock sin verificar.`, { held: true }, 'error');
           fail(steps.lock, `[${runId}] abortado: state lock ocupado. Nada se modificó.`);
           for (const s of [steps.plan, steps.approval, steps.apply, steps.unlock]) s.status = 'idle';
           return;
@@ -706,7 +707,7 @@ export class Delivery {
             if (pending > 0) return;
             const drift = this.hasFault('terraform-drift');
             if (drift) {
-              tfEvent('terraform.plan', 'Note: Objects have changed outside of Terraform — security group rule 0.0.0.0/0:22 añadida manualmente (drift).', { drift: true }, 'warn', 'warning');
+              tfEvent('terraform.plan', `Note: Objects have changed outside of Terraform — ${tf.driftMessage}`, { drift: true }, 'warn', 'warning');
             }
             this.setStage(steps.plan, 'success');
             tfEvent(

@@ -261,6 +261,18 @@ td[class^='phase-ErrImage'], td.phase-ImagePullBackOff, td.phase-CrashLoopBackOf
 
 .cfl-footer { padding: 3px 12px; font-size: 11px; color: var(--text-faint); border-top: 1px solid var(--line); background: var(--bg-1); }
 
+/* ----------------------------------------------------------- comparación */
+.cfl-compare-view { display: grid; grid-template-rows: 1fr 1fr; min-height: 0; height: 100%; }
+.cfl-compare-pane { position: relative; display: flex; flex-direction: column; min-height: 0; border-bottom: 1px solid var(--line); }
+.cfl-compare-pane .cfl-canvas { flex: 1; min-height: 0; }
+.cfl-compare-summary { padding: 4px 10px; background: var(--bg-1); border-bottom: 1px solid var(--line); color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cfl-compare-panel { width: auto; }
+.cfl-compare-table td { vertical-align: top; }
+.cfl-compare-note { grid-column: 1 / -1; margin: 0; padding: 6px 8px; border: 1px solid var(--st-blocked); border-radius: 4px; color: var(--text-dim); }
+.cfl-compare-svc { font-weight: 600; margin-bottom: 2px; }
+.cfl-table td.sev-error { color: var(--st-failed); }
+.cfl-main:has(.cfl-compare-panel) { grid-template-columns: 1fr 520px; }
+
 /* ------------------------------------------------------------ responsive */
 @media (max-width: 1100px) {
   .cfl-main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }

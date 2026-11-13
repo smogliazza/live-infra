@@ -2,7 +2,20 @@
 
 Separación explícita entre lo **implementado** y lo **pendiente**. Basado en el plan por fases de la especificación.
 
-## ✅ Implementado (v0.1 — vertical slice)
+## ✅ Implementado
+
+**v0.3 — Modo comparación**
+- Segundo motor sincronizado: mismo reloj, mismos comandos en el mismo instante, fallos aplicados en ambos (ids comunes).
+- Vista paralela de mapas, comparación salto a salto de la última request (alineada por `intent`) y tabla de diferencias por aspecto (`src/catalog/comparison.ts`).
+- Tests de sincronización vía store y E2E (503 en AWS vs 502 en Azure).
+
+**v0.2 — Perfil Azure**
+- Perfil **Microsoft Azure**: Azure DNS, Front Door Premium + WAF, Application Gateway v2 + AGIC, AKS, ACR, PostgreSQL Flexible Server, Azure Managed Redis, Service Bus, Azure Repos + Azure Pipelines, backend azurerm.
+- Aplicación "shop" compartida entre proveedores (`src/scenarios/shop-app.ts`) e `intent` por nodo para comparar funciones.
+- Los 11 fallos existen con el mismo id en todos los perfiles; diferencias reales documentadas (502 vs 503, lease vs lock file…).
+- Todo el suite del motor se ejecuta por perfil + test de paridad entre perfiles; E2E de Azure.
+
+**v0.1 — vertical slice**
 
 **Fase 0 — Diseño y base**
 - Modelo de dominio tipado y validado con Zod + validación de referencias cruzadas.
@@ -27,14 +40,15 @@ Separación explícita entre lo **implementado** y lo **pendiente**. Basado en e
 ## 🔜 Pendiente
 
 **Fase 2 — Cinco perfiles**
-- [ ] Perfiles Azure, Google Cloud, DigitalOcean y OCI (catálogo + escenario de referencia), validados contra documentación oficial.
+- [x] Perfil Azure.
+- [ ] Perfiles Google Cloud, DigitalOcean y OCI (catálogo + escenario de referencia), validados contra documentación oficial.
 - [ ] Variante con Cloudflare como edge externo donde aporte valor (DigitalOcean, y opcional en el resto).
 - [ ] Cloud Run como arquitectura alternativa serverless en GCP.
 - [ ] Arquitectura mínima + avanzada expandible por perfil (expand/collapse por grupo).
 
 **Fase 3 — Flujos y observabilidad**
 - [ ] Estrategias canary y blue/green (Argo Rollouts) además de rolling.
-- [ ] Azure DevOps Pipelines como motor de CI alternativo.
+- [x] Azure DevOps Pipelines como motor de CI (perfil Azure).
 - [ ] Handshakes TCP/TLS y HTTP/3/QUIC como pasos visibles (modo protocolo).
 - [ ] Networking K8s detallado: Pod IP, CNI, kube-proxy/eBPF, CoreDNS, NetworkPolicy como objetos inspeccionables.
 - [ ] Service mesh (mTLS, retries, circuit breaker, rate limiting).
@@ -42,7 +56,8 @@ Separación explícita entre lo **implementado** y lo **pendiente**. Basado en e
 - [ ] Vista Prometheus/Grafana vs CloudWatch/Azure Monitor/Cloud Observability/OCI Monitoring.
 
 **Fase 4 — Comparación y fallos**
-- [ ] Modo comparación sincronizado de 2+ proveedores (misma intención, vista paralela, tabla de diferencias sin "mejor cloud").
+- [x] Modo comparación sincronizado de 2 proveedores (misma intención, vista paralela, tabla de diferencias sin "mejor cloud").
+- [ ] Comparación de 3+ proveedores y step-back en modo comparación.
 - [ ] Más escenarios: TLS inválido, DB failover, Argo CD OutOfSync recurrente, permisos de publicación en registry, cambio destructivo en Terraform.
 - [ ] Modos guiado y troubleshooting con objetivos y pistas.
 - [ ] Post-mortem con línea temporal exportable.

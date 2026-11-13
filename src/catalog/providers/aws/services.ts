@@ -360,6 +360,19 @@ spec:
       advanced:
         'Desde Terraform 1.10 el backend S3 soporta locking nativo mediante un lock file (`use_lockfile = true`); el locking basado en DynamoDB quedó marcado como obsoleto. Verifica la versión que usas. El state contiene datos sensibles: cifrado, acceso mínimo y versionado obligatorios.',
       receives: ['Lecturas/escrituras del state y del lock file'],
+      exampleConfig: {
+        language: 'hcl',
+        code: `# ILUSTRATIVO
+terraform {
+  backend "s3" {
+    bucket       = "example-tfstate"
+    key          = "shop/prod/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true   # locking nativo en S3 (Terraform >= 1.10)
+  }
+}`,
+      },
       processes: ['Almacenamiento versionado'],
       emits: ['State'],
       protocols: ['HTTPS (S3 API)'],

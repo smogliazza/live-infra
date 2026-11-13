@@ -145,14 +145,14 @@ build-catalog:
     plane: 'delivery',
     role: 'Integración continua: test, scan, build, publish',
     inspector: {
-      summary: 'Ejecuta el pipeline: tests, análisis estático, escaneo de dependencias, build de la imagen OCI, escaneo de imagen y publicación en el registry. Al final actualiza el repo GitOps.',
+      summary: 'Ejecuta el pipeline (.gitlab-ci.yml): tests, análisis estático, escaneo de dependencias, build de la imagen OCI, escaneo de imagen y publicación en el registry. Al final actualiza el repo GitOps.',
       advanced:
-        'CI ≠ CD. El pipeline NO despliega en el cluster: publica artefactos inmutables (imagen con digest) y modifica la referencia declarativa (tag/digest en kustomization.yaml). Argo CD hace el resto. Para publicar en ECR usa credenciales de corta duración (OIDC → IAM role), nunca claves estáticas.',
+        'CI ≠ CD. El pipeline NO despliega en el cluster: publica artefactos inmutables (imagen con digest) y modifica la referencia declarativa (tag/digest en kustomization.yaml). Argo CD hace el resto. Para publicar en el registry usa credenciales de corta duración (id_token OIDC federado con un rol del proveedor cloud), nunca claves estáticas.',
       receives: ['Pipeline trigger'],
       processes: ['checkout', 'lint', 'unit tests', 'SAST', 'dependency scan', 'docker build', 'image scan', 'docker push', 'commit GitOps'],
       emits: ['Imagen OCI al registry', 'Commit al repo GitOps', 'Estado del pipeline'],
       protocols: ['HTTPS (registry API v2)', 'Git'],
-      identity: ['OIDC id_token → sts:AssumeRoleWithWebIdentity (rol con permisos ecr:PutImage)'],
+      identity: ['OIDC id_token → rol cloud con permiso de push (p.ej. sts:AssumeRoleWithWebIdentity + ecr:PutImage en AWS)'],
       exampleConfig: {
         language: 'yaml',
         code: `# ILUSTRATIVO
@@ -182,8 +182,8 @@ update-gitops:
         },
         {
           name: 'Sin permisos para publicar',
-          symptoms: 'docker push → 403 / denied: not authorized to perform ecr:InitiateLayerUpload.',
-          diagnosis: 'Revisar la trust policy del rol OIDC y la policy de ECR.',
+          symptoms: 'docker push → 401/403 denied (p.ej. "not authorized to perform ecr:InitiateLayerUpload").',
+          diagnosis: 'Revisar la federación OIDC del rol y los permisos sobre el repositorio del registry.',
           mitigation: 'Ajustar permisos mínimos sobre el repositorio concreto.',
         },
       ],
@@ -212,7 +212,7 @@ update-gitops:
 resources: [../../base]
 images:
   - name: catalog
-    newName: 123456789012.dkr.ecr.us-east-1.amazonaws.com/shop/catalog
+    newName: <registry>/shop/catalog
     newTag: "1.8.4"`,
       },
       docs: [{ title: 'Kustomize — images', url: 'https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/images/' }],
@@ -278,13 +278,13 @@ spec:
     inspector: {
       summary: 'Un Deployment gestiona un ReplicaSet de Pods idénticos. Un Service (ClusterIP) les da un nombre DNS y una IP virtual estable.',
       advanced:
-        'El tráfico este-oeste usa el DNS interno (svc.cluster.local) y la ClusterIP; kube-proxy (iptables/IPVS) o un dataplane eBPF traduce a la IP de un Pod listado en la EndpointSlice. Sólo los Pods con readiness OK aparecen como endpoints listos. Con el AWS Load Balancer Controller en modo `target-type: ip`, el ALB envía directamente a la IP del Pod (VPC CNI), sin pasar por kube-proxy.',
+        'El tráfico este-oeste usa el DNS interno (svc.cluster.local) y la ClusterIP; kube-proxy (iptables/IPVS) o un dataplane eBPF traduce a la IP de un Pod listado en la EndpointSlice. Sólo los Pods con readiness OK aparecen como endpoints listos. Cuando el load balancer del proveedor enruta directamente a la IP del Pod (AWS Load Balancer Controller en modo `target-type: ip`, Application Gateway Ingress Controller con Azure CNI), el tráfico norte-sur no pasa por kube-proxy.',
       receives: ['HTTP desde ALB o desde otros servicios'],
       processes: ['AuthN/AuthZ', 'Validación', 'Lógica de negocio', 'Llamadas a dependencias'],
       emits: ['Respuestas HTTP', 'Logs estructurados', 'Spans OpenTelemetry', 'Métricas /metrics'],
       protocols: ['HTTP/1.1', 'HTTP/2', 'PostgreSQL wire', 'RESP (Redis)'],
       ports: ['8080 (contenedor)', '80 (Service)'],
-      identity: ['ServiceAccount + EKS Pod Identity / IRSA para acceder a APIs AWS'],
+      identity: ['ServiceAccount federado con la identidad de workload del proveedor (EKS Pod Identity / IRSA, Microsoft Entra Workload ID…)'],
       exampleConfig: {
         language: 'yaml',
         code: `# ILUSTRATIVO
@@ -357,18 +357,14 @@ spec:
       processes: ['init', 'plan', 'apply', 'gestión del state'],
       emits: ['Llamadas a la API del proveedor', 'State actualizado', 'Outputs'],
       protocols: ['HTTPS (APIs del proveedor)'],
-      identity: ['Rol IAM de despliegue con permisos acotados (vía OIDC desde CI)'],
+      identity: ['Identidad de despliegue con permisos acotados (federada vía OIDC desde CI)'],
       exampleConfig: {
-        language: 'hcl',
-        code: `# ILUSTRATIVO
-terraform {
-  backend "s3" {
-    bucket       = "example-tfstate"
-    key          = "shop/prod/terraform.tfstate"
-    region       = "us-east-1"
-    use_lockfile = true   # locking nativo en S3 (Terraform >= 1.10)
-  }
-}`,
+        language: 'bash',
+        code: `# ILUSTRATIVO — flujo típico en CI
+terraform init -input=false
+terraform plan -input=false -out=tfplan   # revisar y aprobar
+terraform apply -input=false tfplan       # aplica exactamente el plan revisado
+# El backend del state (y su locking) depende del proveedor: ver el nodo de state.`,
       },
       typicalLogs: ['Acquiring state lock', 'Plan: 1 to add, 1 to change, 0 to destroy', 'Apply complete!'],
       failureModes: [
