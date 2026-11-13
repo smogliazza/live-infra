@@ -1,6 +1,6 @@
 # Arquitectura interna
 
-> Estado: **Fase 0 + Fase 1 (vertical slice)**. Este documento describe lo que ya existe en el código; lo pendiente está en [ROADMAP.md](../ROADMAP.md).
+> Estado: **v0.3** — motor, perfiles AWS y Azure, modo comparación. Este documento describe lo que ya existe en el código; lo pendiente está en [ROADMAP.md](../ROADMAP.md).
 
 ## 1. Principios
 
@@ -122,7 +122,15 @@ fallos → ProgressDeadlineExceeded → Argo Degraded → git revert → sync �
 - **Inspector**: contenido del catálogo + estado en vivo (pods, conexiones, eventos recientes).
 - **Accesibilidad**: navegación por teclado, atajos, `prefers-reduced-motion` (pulsos estáticos), contraste AA en textos principales, layout responsive.
 
-## 7. Riesgos técnicos
+## 7. Modo comparación
+
+- El store mantiene un segundo `SimulationEngine` (`compareEngine`) creado con la misma semilla. `tick` avanza ambos al mismo instante y `dispatch` aplica cada comando a los dos en el mismo `now`.
+- Los fallos tienen el **mismo id** en todos los perfiles (`lb-no-healthy-targets`, `waf-false-positive`…), así que un mismo comando inyecta la avería equivalente en ambos lados. Un test de paridad lo garantiza.
+- La comparación salto a salto alinea spans por `intent` del nodo (o por id del microservicio, que es común: la app "shop" se define una sola vez en `src/scenarios/shop-app.ts`).
+- La tabla de diferencias (`src/catalog/comparison.ts`) tiene notas por proveedor y aspecto; un test exige que cada perfil registrado tenga nota en cada aspecto.
+- Step-back no está disponible en comparación (los dos motores tienen números de jobs distintos); step-forward avanza ambos al siguiente instante con trabajo.
+
+## 8. Riesgos técnicos
 
 | Riesgo | Mitigación actual / prevista |
 |---|---|

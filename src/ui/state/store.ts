@@ -40,6 +40,9 @@ export interface SimStore {
   consoleOpen: boolean;
   consoleHeight: number;
   metricsHistory: MetricsSample[];
+  /** Modo comparación: un segundo motor recibe los mismos comandos. */
+  compareProviderId?: string;
+  compareEngine?: SimulationEngine;
 
   tick(realDeltaMs: number): void;
   play(): void;
@@ -60,6 +63,7 @@ export interface SimStore {
   setAdvancedView(v: boolean): void;
   setReducedMotion(v: boolean): void;
   setScenario(providerId: string, scenarioId: string): void;
+  setCompare(providerId?: string): void;
 }
 
 function createEngine(providerId: string, scenarioId: string, seed: number): SimulationEngine {
@@ -112,7 +116,9 @@ export const useSim = create<SimStore>((set, get) => {
       const s = get();
       if (!s.playing) return;
       const dv = Math.min(realDeltaMs, 100) * VIRTUAL_PER_REAL_MS * s.speed;
-      s.engine.advanceTo(s.engine.now + dv);
+      const target = s.engine.now + dv;
+      s.engine.advanceTo(target);
+      s.compareEngine?.advanceTo(target);
       bump();
     },
     play: () => set({ playing: true }),
@@ -120,12 +126,21 @@ export const useSim = create<SimStore>((set, get) => {
     togglePlay: () => set((s) => ({ playing: !s.playing })),
     stepForward() {
       const s = get();
-      s.engine.step();
+      if (s.compareEngine) {
+        // Dos motores: avanzar ambos hasta el siguiente instante con trabajo.
+        const next = Math.min(s.engine.nextJobTime() ?? Infinity, s.compareEngine.nextJobTime() ?? Infinity);
+        if (Number.isFinite(next)) {
+          s.engine.advanceTo(next);
+          s.compareEngine.advanceTo(next);
+        }
+      } else {
+        s.engine.step();
+      }
       bump({ playing: false });
     },
     stepBack() {
       const s = get();
-      if (s.engine.jobsProcessed === 0) return;
+      if (s.engine.jobsProcessed === 0 || s.compareEngine) return;
       const e = s.engine;
       const rebuilt = SimulationEngine.replay(e.scenario, [...e.catalog.values()], e.seed, e.commands, e.jobsProcessed - 1);
       lastSampleAt = -Infinity;
@@ -136,6 +151,7 @@ export const useSim = create<SimStore>((set, get) => {
       lastSampleAt = -Infinity;
       set({
         engine: createEngine(s.providerId, s.scenarioId, s.seed),
+        compareEngine: s.compareProviderId ? createEngine(s.compareProviderId, '', s.seed) : undefined,
         frame: s.frame + 1,
         metricsHistory: [],
         selectedEventSeq: undefined,
@@ -144,7 +160,14 @@ export const useSim = create<SimStore>((set, get) => {
     },
     setSpeed: (speed) => set({ speed }),
     dispatch(command) {
-      get().engine.dispatch(command);
+      const s = get();
+      s.engine.dispatch(command);
+      // Mismo comando, mismo instante: escenario sincronizado. Los fallos
+      // comparten id entre perfiles, así que se aplican en ambos.
+      if (s.compareEngine) {
+        s.compareEngine.advanceTo(s.engine.now);
+        s.compareEngine.dispatch(command);
+      }
       bump();
     },
     selectNode: (id) => set({ selectedNodeId: id }),
@@ -159,12 +182,32 @@ export const useSim = create<SimStore>((set, get) => {
     setConsoleHeight: (h) => set({ consoleHeight: Math.max(140, Math.min(h, 700)) }),
     setAdvancedView: (v) => set({ advancedView: v }),
     setReducedMotion: (v) => set({ reducedMotion: v }),
+    setCompare(compareProviderId) {
+      const s = get();
+      lastSampleAt = -Infinity;
+      if (!compareProviderId || compareProviderId === s.providerId) {
+        set({ compareProviderId: undefined, compareEngine: undefined, frame: s.frame + 1 });
+        return;
+      }
+      // Reiniciar ambos para que empiecen sincronizados en t=0.
+      set({
+        compareProviderId,
+        engine: createEngine(s.providerId, s.scenarioId, s.seed),
+        compareEngine: createEngine(compareProviderId, '', s.seed),
+        frame: s.frame + 1,
+        metricsHistory: [],
+        selectedEventSeq: undefined,
+        selectedTraceId: undefined,
+      });
+    },
     setScenario(providerId, scenarioId) {
       lastSampleAt = -Infinity;
       set((s) => ({
         providerId,
         scenarioId,
         engine: createEngine(providerId, scenarioId, s.seed),
+        ...(s.compareProviderId === providerId ? { compareProviderId: undefined, compareEngine: undefined } : {}),
+        ...(s.compareProviderId && s.compareProviderId !== providerId ? { compareEngine: createEngine(s.compareProviderId, '', s.seed) } : {}),
         frame: s.frame + 1,
         metricsHistory: [],
         selectedNodeId: undefined,

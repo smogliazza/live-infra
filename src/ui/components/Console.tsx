@@ -384,10 +384,17 @@ function FaultsView() {
   const engine = useEngine();
   const dispatch = useSim((s) => s.dispatch);
   const selectNode = useSim((s) => s.selectNode);
+  const compareEngine = useSim((s) => s.compareEngine);
   const groups: Record<string, typeof engine.scenario.faults> = { request: [], delivery: [] };
   for (const f of engine.scenario.faults) groups[f.domain]!.push(f);
   return (
     <div className="cfl-faults">
+      {compareEngine && (
+        <p className="cfl-compare-note">
+          Modo comparación: cada fallo se inyecta también en {compareEngine.scenario.title} (mismo id, componente equivalente). Los textos describen el proveedor principal; la tabla de
+          comparación muestra la diferencia de comportamiento.
+        </p>
+      )}
       {(['request', 'delivery'] as const).map((domain) => (
         <div key={domain}>
           <h4>{domain === 'request' ? 'Data plane (requests)' : 'Delivery e infraestructura'}</h4>

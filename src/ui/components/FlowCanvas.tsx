@@ -1,18 +1,5 @@
 import { createContext, memo, useContext, useMemo } from 'react';
-import {
-  Background,
-  BaseEdge,
-  Controls,
-  Handle,
-  MiniMap,
-  Position,
-  ReactFlow,
-  useInternalNode,
-  type Edge,
-  type EdgeProps,
-  type Node,
-  type NodeProps,
-} from '@xyflow/react';
+import { Background, BaseEdge, Controls, Handle, MiniMap, Position, ReactFlow, useInternalNode, type Edge, type EdgeProps, type Node, type NodeProps } from '@xyflow/react';
 import type { Transfer, SimulationEngine } from '../../engine/engine';
 import { nodeVisualStatus } from '../../engine/observability';
 import type { VisualStatus } from '../../engine/events';
@@ -73,7 +60,10 @@ const ComponentNode = memo(function ComponentNode({ data, selected }: NodeProps<
               title={`${p.name} · ${p.version} · ${p.phase}${p.ready ? ' · Ready' : ''}`}
             />
           ))}
-          <span className="cfl-version">v{workload.version}{workload.targetVersion ? ` → ${workload.targetVersion}` : ''}</span>
+          <span className="cfl-version">
+            v{workload.version}
+            {workload.targetVersion ? ` → ${workload.targetVersion}` : ''}
+          </span>
         </div>
       )}
     </div>
@@ -183,21 +173,34 @@ const edgeTypes = { flow: FlowEdge };
 
 // ----------------------------------------------------------------- canvas
 
-export function FlowCanvas() {
-  const engine = useEngine();
+interface FlowCanvasProps {
+  /** Motor a dibujar; por defecto el principal. En comparación, el secundario. */
+  engine?: SimulationEngine;
+  /** Canvas secundario: sin selección ni correlación con la consola. */
+  secondary?: boolean;
+  /** Sin minimapa (paneles pequeños del modo comparación). */
+  compact?: boolean;
+  testId?: string;
+}
+
+export function FlowCanvas({ engine: engineProp, secondary = false, compact = false, testId = 'canvas' }: FlowCanvasProps) {
+  const primary = useEngine();
+  const engine = engineProp ?? primary;
   const advancedView = useSim((s) => s.advancedView);
   const reducedMotion = useSim((s) => s.reducedMotion);
-  const selectedNodeId = useSim((s) => s.selectedNodeId);
-  const selectedEventSeq = useSim((s) => s.selectedEventSeq);
-  const selectedTraceId = useSim((s) => s.selectedTraceId);
-  const selectNode = useSim((s) => s.selectNode);
-  const selectTrace = useSim((s) => s.selectTrace);
+  const storeSelectedNodeId = useSim((s) => s.selectedNodeId);
+  const storeSelectedEventSeq = useSim((s) => s.selectedEventSeq);
+  const storeSelectedTraceId = useSim((s) => s.selectedTraceId);
+  const storeSelectNode = useSim((s) => s.selectNode);
+  const storeSelectTrace = useSim((s) => s.selectTrace);
+  const selectedNodeId = secondary ? undefined : storeSelectedNodeId;
+  const selectedEventSeq = secondary ? undefined : storeSelectedEventSeq;
+  const selectedTraceId = secondary ? undefined : storeSelectedTraceId;
+  const selectNode = secondary ? () => undefined : storeSelectNode;
+  const selectTrace = secondary ? () => undefined : storeSelectTrace;
   const scenario = engine.scenario;
 
-  const visibleNodeIds = useMemo(
-    () => new Set(scenario.nodes.filter((n) => advancedView || !n.advanced).map((n) => n.id)),
-    [scenario, advancedView],
-  );
+  const visibleNodeIds = useMemo(() => new Set(scenario.nodes.filter((n) => advancedView || !n.advanced).map((n) => n.id)), [scenario, advancedView]);
 
   const nodes = useMemo<Node[]>(() => {
     const boundaries: Node[] = scenario.boundaries.map((b) => ({
@@ -210,6 +213,9 @@ export function FlowCanvas() {
       focusable: false,
       zIndex: -1,
       style: { width: b.width, height: b.height },
+      // Nodos controlados: el minimapa necesita conocer el tamaño de antemano.
+      initialWidth: b.width,
+      initialHeight: b.height,
     }));
     const comps: Node[] = scenario.nodes
       .filter((n) => visibleNodeIds.has(n.id))
@@ -221,6 +227,8 @@ export function FlowCanvas() {
         selected: n.id === selectedNodeId,
         draggable: false,
         ariaLabel: n.label,
+        initialWidth: NODE_W,
+        initialHeight: n.workload ? NODE_H + 16 : NODE_H,
       }));
     return [...boundaries, ...comps];
   }, [scenario, visibleNodeIds, selectedNodeId]);
@@ -229,7 +237,14 @@ export function FlowCanvas() {
     () =>
       scenario.edges
         .filter((e) => (advancedView || !e.advanced) && visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target))
-        .map((e) => ({ id: e.id, source: e.source, target: e.target, type: 'flow', data: { def: e }, focusable: false })),
+        .map((e) => ({
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          type: 'flow',
+          data: { def: e },
+          focusable: false,
+        })),
     [scenario, advancedView, visibleNodeIds],
   );
 
@@ -263,11 +278,18 @@ export function FlowCanvas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engine, selectedEventSeq, selectedTraceId, logLength]);
 
-  const ctx: CanvasContextValue = { engine, transfers, highlightedEdges, highlightedNodes, reducedMotion, selectTrace };
+  const ctx: CanvasContextValue = {
+    engine,
+    transfers,
+    highlightedEdges,
+    highlightedNodes,
+    reducedMotion,
+    selectTrace,
+  };
 
   return (
     <CanvasContext.Provider value={ctx}>
-      <div className="cfl-canvas" data-testid="canvas">
+      <div className="cfl-canvas" data-testid={testId}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -285,19 +307,21 @@ export function FlowCanvas() {
           onNodeClick={(_, n) => n.type === 'component' && selectNode(n.id)}
           onSelectionChange={({ nodes: sel }) => {
             const n = sel.find((x) => x.type === 'component');
-            if (n && n.id !== useSim.getState().selectedNodeId) selectNode(n.id);
+            if (!secondary && n && n.id !== useSim.getState().selectedNodeId) selectNode(n.id);
           }}
           onPaneClick={() => selectNode(undefined)}
         >
           <Background gap={24} size={1} color="#1d2533" />
-          <MiniMap
-            pannable
-            zoomable
-            nodeColor={(n) => (n.type === 'boundary' ? 'rgba(90,115,150,0.25)' : minimapColor(nodeVisualStatus(engine, n.id)))}
-            position="top-left"
-            maskColor="rgba(8,11,16,0.6)"
-            style={{ background: '#0d1219', width: 150, height: 90 }}
-          />
+          {!compact && (
+            <MiniMap
+              pannable
+              zoomable
+              nodeColor={(n) => (n.type === 'boundary' ? 'rgba(90,115,150,0.25)' : minimapColor(nodeVisualStatus(engine, n.id)))}
+              position="top-left"
+              maskColor="rgba(8,11,16,0.6)"
+              style={{ background: '#0d1219', width: 150, height: 90 }}
+            />
+          )}
           <Controls showInteractive={false} />
         </ReactFlow>
       </div>

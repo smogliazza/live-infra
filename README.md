@@ -3,7 +3,7 @@
 **Laboratorio visual e interactivo para comprender arquitecturas Cloud, DevOps, Kubernetes, networking y observabilidad.**
 Simulación 100% educativa y determinista: no se conecta a cuentas cloud, no pide credenciales y no ejecuta operaciones reales.
 
-> **Estado: v0.2.** Motor completo + perfiles **AWS** y **Microsoft Azure**. Google Cloud, DigitalOcean y OCI están planificados (ver [ROADMAP.md](ROADMAP.md)).
+> **Estado: v0.3.** Motor completo + perfiles **AWS** y **Microsoft Azure** + **modo comparación**. Google Cloud, DigitalOcean y OCI están planificados (ver [ROADMAP.md](ROADMAP.md)).
 
 ## Proveedores
 
@@ -33,6 +33,7 @@ Las equivalencias son **aproximadas**: el inspector y los escenarios de fallo do
 - **Inyectar fallos** (403 WAF, LB sin destinos sanos, deadline/reintento 504, NetworkPolicy, DB saturada, NXDOMAIN con TTL, tests rotos, ImagePullBackOff, readiness fallida, state lock, drift) y diagnosticarlos.
 - **Correlacionar**: cada pulso del mapa, línea de la consola, span de la traza y métrica sale del mismo event stream. Clic en un log → resalta nodo/edge; clic en un nodo → filtra la consola; clic en un pulso o traza → resalta el recorrido completo.
 - **Inspeccionar** cualquier componente: explicación, detalle avanzado, configuración ilustrativa, protocolos/puertos, identidad, límites de confianza, pods en vivo, fallos típicos, documentación oficial y glosario.
+- **Comparar proveedores** ("Comparar con" en la cabecera): el mismo escenario corre en dos proveedores con el mismo reloj, los mismos comandos y los mismos fallos. Verás los dos mapas en paralelo, la última request salto a salto en cada lado y una tabla de diferencias por aspecto (DNS, edge, WAF, LB, red, identidad, Kubernetes, registry, datos, CI, state de Terraform, observabilidad), sin puntuación de "mejor cloud".
 - **Controlar el tiempo**: play/pausa, paso adelante, **paso atrás** (replay determinista), reinicio y velocidad 0.25×–25×.
 
 ## Inicio rápido

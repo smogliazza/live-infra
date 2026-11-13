@@ -4,6 +4,11 @@ Separación explícita entre lo **implementado** y lo **pendiente**. Basado en e
 
 ## ✅ Implementado
 
+**v0.3 — Modo comparación**
+- Segundo motor sincronizado: mismo reloj, mismos comandos en el mismo instante, fallos aplicados en ambos (ids comunes).
+- Vista paralela de mapas, comparación salto a salto de la última request (alineada por `intent`) y tabla de diferencias por aspecto (`src/catalog/comparison.ts`).
+- Tests de sincronización vía store y E2E (503 en AWS vs 502 en Azure).
+
 **v0.2 — Perfil Azure**
 - Perfil **Microsoft Azure**: Azure DNS, Front Door Premium + WAF, Application Gateway v2 + AGIC, AKS, ACR, PostgreSQL Flexible Server, Azure Managed Redis, Service Bus, Azure Repos + Azure Pipelines, backend azurerm.
 - Aplicación "shop" compartida entre proveedores (`src/scenarios/shop-app.ts`) e `intent` por nodo para comparar funciones.
@@ -51,7 +56,8 @@ Separación explícita entre lo **implementado** y lo **pendiente**. Basado en e
 - [ ] Vista Prometheus/Grafana vs CloudWatch/Azure Monitor/Cloud Observability/OCI Monitoring.
 
 **Fase 4 — Comparación y fallos**
-- [ ] Modo comparación sincronizado de 2+ proveedores (misma intención, vista paralela, tabla de diferencias sin "mejor cloud").
+- [x] Modo comparación sincronizado de 2 proveedores (misma intención, vista paralela, tabla de diferencias sin "mejor cloud").
+- [ ] Comparación de 3+ proveedores y step-back en modo comparación.
 - [ ] Más escenarios: TLS inválido, DB failover, Argo CD OutOfSync recurrente, permisos de publicación en registry, cambio destructivo en Terraform.
 - [ ] Modos guiado y troubleshooting con objetivos y pistas.
 - [ ] Post-mortem con línea temporal exportable.

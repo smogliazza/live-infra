@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
-import { ReactFlowProvider } from '@xyflow/react';
 import { Header } from './components/Header';
 import { FlowCanvas } from './components/FlowCanvas';
 import { Inspector } from './components/Inspector';
 import { Console } from './components/Console';
+import { ComparePanel, CompareView } from './components/Compare';
 import { useSim } from './state/store';
 
 /** Bucle de reloj: convierte tiempo real en tiempo virtual según la velocidad. */
@@ -43,21 +43,22 @@ function useShortcuts() {
 }
 
 export function App() {
+  const compare = useSim((s) => Boolean(s.compareEngine));
   useClock();
   useShortcuts();
   return (
-    <ReactFlowProvider>
+    <>
       <div className="cfl-app">
         <Header />
         <main className="cfl-main">
-          <FlowCanvas />
-          <Inspector />
+          {compare ? <CompareView /> : <FlowCanvas />}
+          {compare ? <ComparePanel /> : <Inspector />}
         </main>
         <Console />
         <footer className="cfl-footer">
           Simulación educativa 100% sintética · no conecta con cuentas cloud · atajos: espacio play/pausa · shift+→/← paso · r request · esc cerrar inspector
         </footer>
       </div>
-    </ReactFlowProvider>
+    </>
   );
 }

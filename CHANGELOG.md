@@ -4,6 +4,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-13
+
+### Añadido
+- Modo comparación: segundo motor sincronizado, mapas en paralelo, comparación salto a salto y tabla de diferencias por aspecto.
+- `.prettierrc.json` con el estilo del proyecto.
+
+### Corregido
+- El minimapa no dibujaba nodos (nodos controlados sin dimensiones iniciales).
+
 ## [0.2.0] - 2026-11-13
 
 ### Añadido

@@ -1,6 +1,6 @@
 {
   "name": "cloud-flow-lab",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Laboratorio visual y 100% simulado para comprender arquitecturas Cloud, DevOps, Kubernetes, networking y observabilidad.",
   "license": "MIT",

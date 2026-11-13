@@ -50,6 +50,19 @@ export function Header() {
             ))}
           </select>
         </label>
+        <label className="cfl-field" title="Ejecuta el mismo escenario, con los mismos comandos y fallos, en un segundo proveedor">
+          <span>Comparar con</span>
+          <select aria-label="Comparar con" value={s.compareProviderId ?? ''} onChange={(ev) => s.setCompare(ev.target.value || undefined)} data-testid="compare-select">
+            <option value="">—</option>
+            {providers
+              .filter((p) => p.id !== s.providerId)
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.shortName}
+                </option>
+              ))}
+          </select>
+        </label>
         <label className="cfl-toggle" title="Modo avanzado: muestra resolver DNS, SQS, watches del kubelet, image pulls y APIs de Terraform">
           <input type="checkbox" checked={s.advancedView} onChange={(ev) => s.setAdvancedView(ev.target.checked)} />
           <span>Avanzado</span>
@@ -61,7 +74,13 @@ export function Header() {
       </div>
 
       <div className="cfl-group" role="group" aria-label="Controles de simulación">
-        <button className="cfl-btn" onClick={s.stepBack} disabled={engine.jobsProcessed === 0} title="Retroceder un paso (replay determinista)" aria-label="Paso atrás">
+        <button
+          className="cfl-btn"
+          onClick={s.stepBack}
+          disabled={engine.jobsProcessed === 0 || Boolean(s.compareEngine)}
+          title={s.compareEngine ? 'Paso atrás no disponible en modo comparación' : 'Retroceder un paso (replay determinista)'}
+          aria-label="Paso atrás"
+        >
           ⏮
         </button>
         <button className="cfl-btn primary" onClick={s.togglePlay} aria-label={s.playing ? 'Pausar' : 'Reanudar'} data-testid="play-toggle">
