@@ -25,6 +25,20 @@ test.describe('Cloud Flow Lab', () => {
     await expect(inspector).toContainText('503 — sin targets sanos');
   });
 
+  test('regresión: seleccionar varios nodos seguidos no rompe el canvas (React #185)', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    for (const id of ['api', 'catalog', 'alb', 'orders', 'api']) {
+      await page.getByTestId(`node-${id}`).click();
+    }
+    await expect(page.getByTestId('inspector')).toContainText('Microservicio');
+    // Teclado: Enter sobre un nodo con foco también lo selecciona.
+    await page.locator('.react-flow__node[data-id=alb]').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByTestId('inspector')).toContainText('Application Load Balancer');
+    expect(errors).toEqual([]);
+  });
+
   test('fallo WAF: 403 desde el edge', async ({ page }) => {
     await page.getByTestId('open-faults').click();
     await page.getByTestId('fault-waf-false-positive').check();

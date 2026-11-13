@@ -289,7 +289,21 @@ export function FlowCanvas({ engine: engineProp, secondary = false, compact = fa
 
   return (
     <CanvasContext.Provider value={ctx}>
-      <div className="cfl-canvas" data-testid={testId}>
+      <div
+        className="cfl-canvas"
+        data-testid={testId}
+        onKeyDown={(ev) => {
+          // Accesibilidad: Enter/Espacio sobre un nodo con foco lo selecciona.
+          if (secondary || (ev.key !== 'Enter' && ev.key !== ' ')) return;
+          const el = (ev.target as HTMLElement).closest('.react-flow__node');
+          const id = el?.getAttribute('data-id');
+          if (id && engine.nodes.has(id)) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            selectNode(id);
+          }
+        }}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -301,14 +315,13 @@ export function FlowCanvas({ engine: engineProp, secondary = false, compact = fa
           maxZoom={2.5}
           nodesConnectable={false}
           nodesDraggable={false}
-          elementsSelectable
+          // La selección es SÓLO nuestra (store): los nodos son controlados y
+          // mezclarla con la selección interna de React Flow provocaba un bucle
+          // de actualizaciones (React error #185) al cambiar de nodo.
+          elementsSelectable={false}
           proOptions={{ hideAttribution: false }}
           colorMode="dark"
           onNodeClick={(_, n) => n.type === 'component' && selectNode(n.id)}
-          onSelectionChange={({ nodes: sel }) => {
-            const n = sel.find((x) => x.type === 'component');
-            if (!secondary && n && n.id !== useSim.getState().selectedNodeId) selectNode(n.id);
-          }}
           onPaneClick={() => selectNode(undefined)}
         >
           <Background gap={24} size={1} color="#1d2533" />
