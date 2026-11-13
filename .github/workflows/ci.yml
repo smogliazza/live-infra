@@ -41,3 +41,26 @@ jobs:
       - run: npm run test:e2e
         env:
           CI: true
+
+  # Deploy a Cloudflare sólo cuando CI pasa en main. La URL del deploy hook
+  # es un secreto: vive en el secret CLOUDFLARE_DEPLOY_HOOK, nunca en el repo.
+  deploy:
+    name: deploy (Cloudflare)
+    runs-on: ubuntu-latest
+    needs: [build, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    concurrency:
+      group: cloudflare-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Disparar el deploy hook de Cloudflare Workers Builds
+        env:
+          DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::error::Falta el secret CLOUDFLARE_DEPLOY_HOOK (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error --retry 3 --retry-delay 5 -X POST "$DEPLOY_HOOK"
+          echo
+          echo "Deploy solicitado para ${GITHUB_SHA::7}. El build corre en Cloudflare (Workers & Pages → tu Worker → Deployments)."
