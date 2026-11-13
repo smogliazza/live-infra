@@ -13,7 +13,19 @@ Cloud Flow Lab es un sitio **100% estático**: no necesita backend, secretos ni 
 
 `vite.config.ts` usa `base: './'`, así que el sitio funciona tanto en la raíz como en un subpath. `public/_headers` añade cabeceras de seguridad (CSP, `X-Content-Type-Options`, etc.).
 
-## 2. Opción A — integración Git (recomendada)
+## 2. Flujo actual del dashboard: Workers Builds
+
+Al conectar un repositorio desde **Workers & Pages → Create**, el dashboard puede proponer un *Worker* con assets estáticos en lugar de un proyecto de Pages clásico. En esa pantalla:
+
+| Campo | Valor |
+|---|---|
+| Root directory | `/` (por defecto) |
+| Build command | `npm ci && npm run build` |
+| Deploy command | `npx wrangler deploy` (por defecto) |
+
+No hay campo "output directory": Wrangler detecta el proyecto Vite y publica `dist/` como assets estáticos. `dist/_headers` también se aplica a los assets de Workers. La URL queda en `https://<nombre>.<subdominio>.workers.dev`.
+
+## 2b. Opción Pages clásica (integración Git)
 
 1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
 2. Selecciona este repositorio, rama de producción `main`.
