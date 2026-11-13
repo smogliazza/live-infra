@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Activity, ChartLine, ChevronDown, ChevronUp, Network, ScrollText, TriangleAlert, type LucideIcon } from 'lucide-react';
 import type { Domain, Severity, SimulationEvent } from '../../engine/events';
 import { buildTrace, computeMetrics, listTraces } from '../../engine/observability';
 import { useEngine, useSim, type ConsoleTab } from '../state/store';
 import { STATUS_LABEL, fmtMs } from './status';
 import { Sparkline } from './Sparkline';
 
-const TABS: { id: ConsoleTab; label: string }[] = [
-  { id: 'events', label: 'Eventos / logs' },
-  { id: 'traces', label: 'Trazas' },
-  { id: 'metrics', label: 'Métricas' },
-  { id: 'delivery', label: 'Pipeline · K8s · IaC' },
-  { id: 'faults', label: 'Fallos' },
+const TABS: { id: ConsoleTab; label: string; icon: LucideIcon }[] = [
+  { id: 'events', label: 'Eventos / logs', icon: ScrollText },
+  { id: 'traces', label: 'Trazas', icon: Network },
+  { id: 'metrics', label: 'Métricas', icon: ChartLine },
+  { id: 'delivery', label: 'Pipeline · K8s · IaC', icon: Activity },
+  { id: 'faults', label: 'Fallos', icon: TriangleAlert },
 ];
 
 export function Console() {
@@ -52,12 +53,12 @@ export function Console() {
       <div className="cfl-tabs" role="tablist">
         {TABS.map((t) => (
           <button key={t.id} role="tab" aria-selected={tab === t.id} className={`cfl-tab ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)} data-testid={`tab-${t.id}`}>
-            {t.label}
+            <t.icon size={13} aria-hidden /> {t.label}
           </button>
         ))}
         <span className="cfl-spacer" />
         <button className="cfl-btn small" onClick={() => setOpen(!open)} aria-label={open ? 'Colapsar consola' : 'Expandir consola'}>
-          {open ? '▾' : '▴'}
+          {open ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
         </button>
       </div>
       {open && (

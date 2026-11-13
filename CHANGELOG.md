@@ -4,6 +4,23 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-13
+
+### Añadido
+- Rediseño "Living Infrastructure" de toda la capa de presentación (ver `docs/redesign/README.md`).
+- Temas Dark Graphite y Light Technical con tokens centralizados, contraste AA verificado y preferencia persistente.
+- Canvas por capas (Cloud, Networking, Kubernetes, Aplicación, Delivery, Observabilidad), conexiones clasificadas y seleccionables, resaltado de vecinos, leyenda, minimapa bajo demanda y centrado en la selección.
+- Reorganización visual de nodos (arrastrar) con restauración; las posiciones son preferencias visuales separadas del escenario.
+- Inspector por secciones e inspectores de conexión y de evento (IDs, payload y relación causal).
+- Inspector y consola redimensionables y colapsables; atajos `c` (centrar) y `f` (ajustar).
+- Dependencia `lucide-react` para la iconografía.
+
+### Cambiado
+- Cabecera organizada en Contexto / Simulación / Acciones / Vista; "Detalle avanzado" y "Movimiento reducido" pasan al menú de vista.
+
+### Sin cambios
+- Motor, modelo, escenarios y catálogo: sin modificaciones.
+
 ## [0.5.0] - 2026-11-13
 
 ### Añadido

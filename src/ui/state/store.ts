@@ -8,12 +8,15 @@ import { providers } from '../../catalog';
 import { SimulationEngine } from '../../engine/engine';
 import type { Command } from '../../engine/events';
 import { computeMetrics, type MetricsSnapshot } from '../../engine/observability';
+import { applyTheme, loadLayout, loadTheme, saveLayout, saveTheme, type LayoutPrefs, type NodePosition, type ThemeId } from './preferences';
 
 /** ms virtuales que avanzan por cada ms real a velocidad 1x (10 ms virtuales/s). */
 export const VIRTUAL_PER_REAL_MS = 0.01;
 export const SPEEDS = [0.25, 0.5, 1, 2, 5, 10, 25] as const;
 
 export type ConsoleTab = 'events' | 'traces' | 'metrics' | 'delivery' | 'faults';
+/** Qué muestra el inspector: el último elemento seleccionado. */
+export type InspectorFocus = 'node' | 'edge' | 'event';
 
 interface MetricsSample {
   t: number;
@@ -44,6 +47,21 @@ export interface SimStore {
   compareProviderId?: string;
   compareEngine?: SimulationEngine;
 
+  // ---- presentación (no afecta a la simulación)
+  theme: ThemeId;
+  selectedEdgeId?: string;
+  inspectorFocus?: InspectorFocus;
+  inspectorWidth: number;
+  inspectorOpen: boolean;
+  hiddenLayers: string[];
+  legendOpen: boolean;
+  minimapOpen: boolean;
+  /** Posiciones visuales por escenario; separadas del modelo de topología. */
+  nodePositions: Record<string, Record<string, NodePosition>>;
+  /** Contadores de "petición de navegación" que consume el canvas. */
+  centerSeq: number;
+  fitSeq: number;
+
   tick(realDeltaMs: number): void;
   play(): void;
   pause(): void;
@@ -64,6 +82,17 @@ export interface SimStore {
   setReducedMotion(v: boolean): void;
   setScenario(providerId: string, scenarioId: string): void;
   setCompare(providerId?: string): void;
+  setTheme(theme: ThemeId): void;
+  selectEdge(id?: string): void;
+  setInspectorWidth(w: number): void;
+  setInspectorOpen(open: boolean): void;
+  toggleLayer(layer: string): void;
+  setLegendOpen(open: boolean): void;
+  setMinimapOpen(open: boolean): void;
+  moveNode(scenarioId: string, nodeId: string, pos: NodePosition, commit?: boolean): void;
+  requestCenter(): void;
+  requestFit(): void;
+  resetLayout(scenarioId: string): void;
 }
 
 function createEngine(providerId: string, scenarioId: string, seed: number): SimulationEngine {
@@ -82,6 +111,21 @@ const MAX_SAMPLES = 120;
 
 export const useSim = create<SimStore>((set, get) => {
   const initialProvider = providers[0]!;
+  const layout = loadLayout();
+  const initialTheme = loadTheme();
+  applyTheme(initialTheme);
+  const persist = () => {
+    const s = get();
+    const prefs: LayoutPrefs = {
+      inspectorWidth: s.inspectorWidth,
+      inspectorOpen: s.inspectorOpen,
+      consoleHeight: s.consoleHeight,
+      consoleOpen: s.consoleOpen,
+      hiddenLayers: s.hiddenLayers,
+      nodePositions: s.nodePositions,
+    };
+    saveLayout(prefs);
+  };
   const initialScenario = initialProvider.scenarios[0]!;
   let lastSampleAt = -Infinity;
 
@@ -108,9 +152,18 @@ export const useSim = create<SimStore>((set, get) => {
     reducedMotion: prefersReducedMotion,
     filterBySelectedNode: true,
     consoleTab: 'events',
-    consoleOpen: true,
-    consoleHeight: 260,
+    consoleOpen: layout.consoleOpen,
+    consoleHeight: layout.consoleHeight,
     metricsHistory: [],
+    theme: initialTheme,
+    inspectorWidth: layout.inspectorWidth,
+    inspectorOpen: layout.inspectorOpen,
+    hiddenLayers: layout.hiddenLayers,
+    legendOpen: false,
+    minimapOpen: false,
+    nodePositions: layout.nodePositions,
+    centerSeq: 0,
+    fitSeq: 0,
 
     tick(realDeltaMs) {
       const s = get();
@@ -170,16 +223,62 @@ export const useSim = create<SimStore>((set, get) => {
       }
       bump();
     },
-    selectNode: (id) => set({ selectedNodeId: id }),
+    selectNode: (id) =>
+      set((s) => ({
+        selectedNodeId: id,
+        inspectorFocus: id ? 'node' : s.inspectorFocus === 'node' ? undefined : s.inspectorFocus,
+        ...(id ? { inspectorOpen: true } : {}),
+      })),
     selectEvent(seq) {
       const ev = seq === undefined ? undefined : get().engine.log[seq];
-      set({ selectedEventSeq: seq, selectedTraceId: ev?.traceId ?? get().selectedTraceId });
+      set({ selectedEventSeq: seq, selectedTraceId: ev?.traceId ?? get().selectedTraceId, inspectorFocus: seq === undefined ? undefined : 'event' });
     },
+    selectEdge: (id) => set((s) => ({ selectedEdgeId: id, inspectorFocus: id ? 'edge' : s.inspectorFocus === 'edge' ? undefined : s.inspectorFocus, ...(id ? { inspectorOpen: true } : {}) })),
     selectTrace: (traceId) => set({ selectedTraceId: traceId }),
     setFilterBySelectedNode: (v) => set({ filterBySelectedNode: v }),
     setConsoleTab: (tab) => set({ consoleTab: tab, consoleOpen: true }),
-    setConsoleOpen: (open) => set({ consoleOpen: open }),
-    setConsoleHeight: (h) => set({ consoleHeight: Math.max(140, Math.min(h, 700)) }),
+    setConsoleOpen: (open) => {
+      set({ consoleOpen: open });
+      persist();
+    },
+    setConsoleHeight: (h) => {
+      set({ consoleHeight: Math.max(140, Math.min(h, 700)) });
+      persist();
+    },
+    setTheme: (theme) => {
+      applyTheme(theme);
+      saveTheme(theme);
+      set({ theme });
+    },
+    setInspectorWidth: (w) => {
+      set({ inspectorWidth: Math.max(320, Math.min(w, 900)) });
+      persist();
+    },
+    setInspectorOpen: (open) => {
+      set({ inspectorOpen: open });
+      persist();
+    },
+    toggleLayer: (layer) => {
+      set((s) => ({ hiddenLayers: s.hiddenLayers.includes(layer) ? s.hiddenLayers.filter((l) => l !== layer) : [...s.hiddenLayers, layer] }));
+      persist();
+    },
+    setLegendOpen: (open) => set({ legendOpen: open }),
+    setMinimapOpen: (open) => set({ minimapOpen: open }),
+    moveNode: (scenarioId, nodeId, pos, commit = true) => {
+      set((s) => ({ nodePositions: { ...s.nodePositions, [scenarioId]: { ...(s.nodePositions[scenarioId] ?? {}), [nodeId]: pos } } }));
+      // Durante el arrastre sólo se actualiza la vista; se persiste al soltar.
+      if (commit) persist();
+    },
+    requestCenter: () => set((s) => ({ centerSeq: s.centerSeq + 1 })),
+    requestFit: () => set((s) => ({ fitSeq: s.fitSeq + 1 })),
+    resetLayout: (scenarioId) => {
+      set((s) => {
+        const next = { ...s.nodePositions };
+        delete next[scenarioId];
+        return { nodePositions: next };
+      });
+      persist();
+    },
     setAdvancedView: (v) => set({ advancedView: v }),
     setReducedMotion: (v) => set({ reducedMotion: v }),
     setCompare(compareProviderId) {
@@ -211,6 +310,8 @@ export const useSim = create<SimStore>((set, get) => {
         frame: s.frame + 1,
         metricsHistory: [],
         selectedNodeId: undefined,
+        selectedEdgeId: undefined,
+        inspectorFocus: undefined,
         selectedEventSeq: undefined,
         selectedTraceId: undefined,
       }));

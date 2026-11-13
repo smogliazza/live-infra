@@ -1,0 +1,168 @@
+/*
+ * Cloud Flow Lab — design tokens ("Living Infrastructure").
+ *
+ * Dos temas completos, cada uno diseñado por separado:
+ *   - Dark Graphite  (por defecto)
+ *   - Light Technical (no es una inversión del oscuro)
+ * Los componentes sólo consumen tokens semánticos; nunca colores literales.
+ */
+
+:root,
+:root[data-theme='dark'] {
+  /* superficies */
+  --bg: #151a22;
+  --canvas: #11161d;
+  --canvas-grid: #1e2733;
+  --panel: #1d2632;
+  --elevated: #263342;
+  --hover: #304154;
+  --border: #3a4a5d;
+  --border-subtle: #2b3747;
+  --text: #e6edf5;
+  --text-2: #a1b1c3;
+  --muted: #8b9cb1; /* ajustado desde #71849A para AA en texto pequeño */
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(0, 0, 0, 0.22);
+  --focus: #58a6ff;
+
+  /* semántica (sección 5 del brief) */
+  --c-network: #58a6ff;
+  --c-traffic: #42c8d5;
+  --c-ok: #36c98f;
+  --c-build: #f0a44b;
+  --c-error: #f47c85; /* #F16C75 ajustado para AA sobre superficies elevadas */
+  --c-control: #a78bfa;
+  --c-warn: #ebcb72;
+
+  /* fondos tenues para chips y estados */
+  --t-network: rgba(88, 166, 255, 0.14);
+  --t-traffic: rgba(66, 200, 213, 0.14);
+  --t-ok: rgba(54, 201, 143, 0.14);
+  --t-build: rgba(240, 164, 75, 0.15);
+  --t-error: rgba(241, 108, 117, 0.16);
+  --t-control: rgba(167, 139, 250, 0.16);
+  --t-warn: rgba(235, 203, 114, 0.15);
+
+  /* boundaries */
+  --b-region: rgba(88, 166, 255, 0.05);
+  --b-region-line: #34506f;
+  --b-vpc: rgba(54, 201, 143, 0.045);
+  --b-vpc-line: #2f5a4c;
+  --b-cluster: rgba(167, 139, 250, 0.06);
+  --b-cluster-line: #4b4775;
+  --b-delivery: rgba(240, 164, 75, 0.05);
+  --b-delivery-line: #5d4a33;
+  --b-edge: rgba(66, 200, 213, 0.045);
+  --b-edge-line: #2c5560;
+  --b-neutral: rgba(161, 177, 195, 0.035);
+  --b-neutral-line: #3a4a5d;
+  --b-label: #8b9cb1;
+
+  /* edges */
+  --e-base: #3c4c60;
+  --e-traffic: #3b7d86;
+  --e-internal: #3d6596;
+  --e-delivery: #7a5b35;
+  --e-control: #5e5394;
+
+  --code-bg: #121820;
+  --code-text: #c9d6e4;
+  --minimap-mask: rgba(10, 14, 20, 0.55);
+  --minimap-bg: #141a23;
+}
+
+:root[data-theme='light'] {
+  --bg: #eef1f5;
+  --canvas: #f8f9fb;
+  --canvas-grid: #e1e6ed;
+  --panel: #ffffff;
+  --elevated: #f3f5f8;
+  --hover: #e8ecf2;
+  --border: #c3ccd8;
+  --border-subtle: #dde3ea;
+  --text: #16202b;
+  --text-2: #3f4f63;
+  --muted: #5d6c80;
+  --shadow: 0 1px 2px rgba(20, 32, 48, 0.08), 0 4px 12px rgba(20, 32, 48, 0.06);
+  --focus: #1a63bf;
+
+  /* misma semántica, tonos oscurecidos para contraste sobre blanco */
+  --c-network: #1a63bf;
+  --c-traffic: #0a6f79;
+  --c-ok: #12704f;
+  --c-build: #955107;
+  --c-error: #c42f3c;
+  --c-control: #6b4fd1;
+  --c-warn: #775c00;
+
+  --t-network: rgba(31, 111, 209, 0.1);
+  --t-traffic: rgba(12, 127, 139, 0.1);
+  --t-ok: rgba(22, 128, 90, 0.1);
+  --t-build: rgba(168, 93, 12, 0.1);
+  --t-error: rgba(196, 47, 60, 0.1);
+  --t-control: rgba(107, 79, 209, 0.1);
+  --t-warn: rgba(138, 106, 0, 0.12);
+
+  --b-region: rgba(31, 111, 209, 0.035);
+  --b-region-line: #9db7d8;
+  --b-vpc: rgba(22, 128, 90, 0.035);
+  --b-vpc-line: #93c2ae;
+  --b-cluster: rgba(107, 79, 209, 0.04);
+  --b-cluster-line: #b4a6e3;
+  --b-delivery: rgba(168, 93, 12, 0.035);
+  --b-delivery-line: #d8b78f;
+  --b-edge: rgba(12, 127, 139, 0.035);
+  --b-edge-line: #8ec1c6;
+  --b-neutral: rgba(63, 79, 99, 0.025);
+  --b-neutral-line: #c3ccd8;
+  --b-label: #5d6c80;
+
+  --e-base: #a7b3c2;
+  --e-traffic: #5aa7b0;
+  --e-internal: #6f9bd6;
+  --e-delivery: #cf9a5c;
+  --e-control: #9d8ae0;
+
+  --code-bg: #f3f5f8;
+  --code-text: #1f2d3d;
+  --minimap-mask: rgba(230, 235, 242, 0.6);
+  --minimap-bg: #ffffff;
+}
+
+:root {
+  /* tipografía */
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 17px;
+
+  /* espaciado / forma */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+
+  /* estados visuales (mapean VisualStatus del motor) */
+  --st-idle: var(--muted);
+  --st-queued: var(--text-2);
+  --st-running: var(--c-traffic);
+  --st-success: var(--c-ok);
+  --st-warning: var(--c-warn);
+  --st-failed: var(--c-error);
+  --st-blocked: var(--c-build);
+  --st-retrying: var(--c-warn);
+  --st-rolling-back: var(--c-build);
+
+  /* capas */
+  --l-cloud: var(--c-network);
+  --l-networking: var(--c-traffic);
+  --l-kubernetes: var(--c-control);
+  --l-application: var(--c-ok);
+  --l-delivery: var(--c-build);
+  --l-observability: var(--c-warn);
+}

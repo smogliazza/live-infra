@@ -4,6 +4,9 @@ Separación explícita entre lo **implementado** y lo **pendiente**. Basado en e
 
 ## ✅ Implementado
 
+**v0.6 — Rediseño UI/UX "Living Infrastructure"**
+- Temas Dark Graphite y Light Technical, canvas por capas, inspector por secciones (nodo, conexión, evento), reorganización visual con restauración, animaciones ligadas al motor. Detalle y capturas en `docs/redesign/README.md`.
+
 **v0.5 — Perfil DigitalOcean (+ Cloudflare)**
 - Perfil **DigitalOcean**: Cloudflare como edge externo (DNS proxied, proxy, WAF), Network Load Balancer L4, Gateway API gestionado de DOKS (Cilium/Envoy), DOKS, DOCR, Managed PostgreSQL, Managed Valkey, Managed Kafka, GitHub Actions, Spaces con backend s3.
 - Catálogo Cloudflare reutilizable (`src/catalog/providers/cloudflare`) para futuras variantes Cloudflare de otros perfiles.
