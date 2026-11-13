@@ -3,27 +3,27 @@
 **Laboratorio visual e interactivo para comprender arquitecturas Cloud, DevOps, Kubernetes, networking y observabilidad.**
 Simulación 100% educativa y determinista: no se conecta a cuentas cloud, no pide credenciales y no ejecuta operaciones reales.
 
-> **Estado: v0.3.** Motor completo + perfiles **AWS** y **Microsoft Azure** + **modo comparación**. Google Cloud, DigitalOcean y OCI están planificados (ver [ROADMAP.md](ROADMAP.md)).
+> **Estado: v0.4.** Motor completo + perfiles **AWS**, **Microsoft Azure** y **Google Cloud** + **modo comparación**. DigitalOcean y OCI están planificados (ver [ROADMAP.md](ROADMAP.md)).
 
 ## Proveedores
 
 La aplicación de ejemplo ("shop": `api`, `catalog`, `orders`) es la **misma** en todos los perfiles; cambia la infraestructura que la soporta. Cada nodo declara su *intención arquitectónica* (edge, WAF, LB L7, base de datos…) para comparar funciones y no nombres comerciales.
 
-| Intención | AWS | Azure |
-|---|---|---|
-| DNS autoritativo | Route 53 | Azure DNS |
-| Edge / CDN | CloudFront | Front Door Premium |
-| WAF | AWS WAF (web ACL) | Azure WAF (política de Front Door) |
-| LB L7 → Pods | ALB + AWS Load Balancer Controller (`target-type: ip`) | Application Gateway v2 + AGIC (Azure CNI) |
-| Kubernetes | EKS | AKS |
-| Registry | ECR | ACR |
-| Base de datos | RDS for PostgreSQL | PostgreSQL Flexible Server |
-| Cache | ElastiCache | Azure Managed Redis |
-| Cola | SQS | Service Bus |
-| CI | GitLab CI/CD | Azure DevOps Pipelines |
-| State de Terraform | S3 (`use_lockfile`) | Blob Storage (lease nativo) |
+| Intención | AWS | Azure | Google Cloud |
+|---|---|---|---|
+| DNS autoritativo | Route 53 | Azure DNS | Cloud DNS |
+| Edge / CDN | CloudFront | Front Door Premium | External Application LB global (GFE) + Cloud CDN |
+| WAF | AWS WAF (web ACL) | Azure WAF (política de Front Door) | Cloud Armor |
+| LB L7 → Pods | ALB + AWS Load Balancer Controller (`target-type: ip`) | Application Gateway v2 + AGIC (Azure CNI) | Backend service + NEG zonal (container-native, Gateway API) |
+| Kubernetes | EKS | AKS | GKE (VPC-native) |
+| Registry | ECR | ACR | Artifact Registry |
+| Base de datos | RDS for PostgreSQL | PostgreSQL Flexible Server | Cloud SQL for PostgreSQL |
+| Cache | ElastiCache | Azure Managed Redis | Memorystore |
+| Cola | SQS | Service Bus | Pub/Sub |
+| CI | GitLab CI/CD | Azure DevOps Pipelines | GitHub + Cloud Build |
+| State de Terraform | S3 (`use_lockfile`) | Blob Storage (lease nativo) | GCS (objeto `.tflock`) |
 
-Las equivalencias son **aproximadas**: el inspector y los escenarios de fallo documentan las diferencias (p.ej. sin destinos sanos el ALB devuelve **503** y Application Gateway **502**).
+Las equivalencias son **aproximadas**: el inspector y los escenarios de fallo documentan las diferencias. Por ejemplo, sin destinos sanos el ALB devuelve **503**, Application Gateway **502** y el load balancer de Google **502 `failed_to_pick_backend`**; y en Google Cloud el edge y el load balancer L7 son el mismo producto.
 
 ## Qué puedes hacer
 

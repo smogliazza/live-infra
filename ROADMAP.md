@@ -4,6 +4,10 @@ Separación explícita entre lo **implementado** y lo **pendiente**. Basado en e
 
 ## ✅ Implementado
 
+**v0.4 — Perfil Google Cloud**
+- Perfil **Google Cloud**: Cloud DNS, Application Load Balancer externo global (GFE + Cloud CDN), Cloud Armor, backend service con NEGs (container-native) vía Gateway API, GKE VPC-native, Artifact Registry, Cloud SQL, Memorystore, Pub/Sub, GitHub + Cloud Build, backend gcs.
+- Notas de comparación GCP en todos los aspectos; suite del motor y E2E para GCP.
+
 **v0.3 — Modo comparación**
 - Segundo motor sincronizado: mismo reloj, mismos comandos en el mismo instante, fallos aplicados en ambos (ids comunes).
 - Vista paralela de mapas, comparación salto a salto de la última request (alineada por `intent`) y tabla de diferencias por aspecto (`src/catalog/comparison.ts`).
@@ -41,7 +45,8 @@ Separación explícita entre lo **implementado** y lo **pendiente**. Basado en e
 
 **Fase 2 — Cinco perfiles**
 - [x] Perfil Azure.
-- [ ] Perfiles Google Cloud, DigitalOcean y OCI (catálogo + escenario de referencia), validados contra documentación oficial.
+- [x] Perfil Google Cloud.
+- [ ] Perfiles DigitalOcean y OCI (catálogo + escenario de referencia), validados contra documentación oficial.
 - [ ] Variante con Cloudflare como edge externo donde aporte valor (DigitalOcean, y opcional en el resto).
 - [ ] Cloud Run como arquitectura alternativa serverless en GCP.
 - [ ] Arquitectura mínima + avanzada expandible por perfil (expand/collapse por grupo).

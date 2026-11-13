@@ -4,6 +4,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-13
+
+### Añadido
+- Perfil Google Cloud con escenario de referencia (GKE detrás del Application Load Balancer externo global, Cloud Armor, NEGs container-native, Cloud SQL, Memorystore, Pub/Sub, GitHub + Cloud Build, backend gcs).
+- Componente genérico `github-repo`; términos de glosario GFE, NEG y VPC-native.
+- Notas de comparación para GCP; E2E de GCP.
+- `loadBalancerOperation` configurable en la app "shop" compartida.
+
 ## [0.3.0] - 2026-11-13
 
 ### Añadido

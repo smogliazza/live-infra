@@ -16,6 +16,8 @@ export interface ShopComponents {
   cache: string;
   database: string;
   queue: string;
+  /** Qué hace el LB L7 en este proveedor (p.ej. listener vs backend service). */
+  loadBalancerOperation?: string;
 }
 
 export function shopRequest(c: ShopComponents): ScenarioDef['request'] {
@@ -48,7 +50,7 @@ export function shopRequest(c: ShopComponents): ScenarioDef['request'] {
           {
             id: 'lb',
             component: c.loadBalancer,
-            operation: 'listener HTTPS:443',
+            operation: c.loadBalancerOperation ?? 'listener HTTPS:443',
             processMs: [0.4, 0.9],
             children: [
               {

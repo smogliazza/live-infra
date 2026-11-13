@@ -5,7 +5,7 @@ import type { SimulationEvent } from '../../src/engine/events';
 import { buildTrace, computeMetrics } from '../../src/engine/observability';
 
 /** Status que genera el propio load balancer cuando no hay destinos sanos. */
-const LB_NO_TARGETS_STATUS: Record<string, number> = { aws: 503, azure: 502 };
+const LB_NO_TARGETS_STATUS: Record<string, number> = { aws: 503, azure: 502, gcp: 502 };
 
 describe.each(providers.map((p) => [p.id, p] as const))('perfil %s', (_id, profile) => {
   const scenario = profile.scenarios[0]!;

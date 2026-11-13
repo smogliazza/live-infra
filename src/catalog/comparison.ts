@@ -26,6 +26,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'Alias record A/AAAA de Route 53 hacia la distribución de CloudFront (funciona también en el apex).',
       azure: 'CNAME al endpoint *.azurefd.net de Front Door; en el apex, alias record de Azure DNS al perfil. El dominio personalizado se valida con un TXT _dnsauth.',
+      gcp: 'Registro A de Cloud DNS a la IP anycast global del load balancer: no hace falta CNAME ni alias a un hostname del edge.',
     },
   },
   {
@@ -36,6 +37,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'CloudFront termina TLS (certificado ACM en us-east-1). Proteger el origen: prefix list gestionada de CloudFront en el security group del ALB y/o header secreto.',
       azure: 'Front Door termina TLS. Proteger el origen: service tag AzureFrontDoor.Backend + validar el header X-Azure-FDID (el service tag solo no basta: lo comparten otros clientes).',
+      gcp: 'El edge ES el load balancer: el Application Load Balancer externo global termina TLS en los GFE; Cloud CDN se activa por backend service. Proteger los Pods: firewall sólo para rangos del GFE / health checks.',
     },
   },
   {
@@ -46,6 +48,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'AWS WAF web ACL asociada a CloudFront; managed rule groups disponibles. Bloqueo → 403 por defecto (respuesta personalizable).',
       azure: 'Política WAF de Front Door. Los managed rule sets (DRS, bots) requieren Front Door Premium; Standard sólo custom rules. Bloqueo → 403 "The request is blocked." por defecto.',
+      gcp: 'Cloud Armor (security policy en el backend service). Reglas WAF preconfiguradas en CEL; deny admite 403, 404 o 502 (la documentación recomienda 403).',
     },
   },
   {
@@ -56,6 +59,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'ALB provisionado por el AWS Load Balancer Controller; con target-type ip registra IPs de Pod (VPC CNI). Sin targets sanos → 503 generado por el ALB.',
       azure: 'Application Gateway v2 configurado por AGIC (o Application Gateway for Containers); requiere subnet dedicado. Sin miembros sanos en el backend pool → 502.',
+      gcp: 'Backend service con NEGs zonales (container-native): IPs de Pod directamente, configurado con Gateway API. Sin endpoints sanos → 502 failed_to_pick_backend (statusDetails en los logs).',
     },
   },
   {
@@ -65,6 +69,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'VPC regional; cada subnet pertenece a UNA zona de disponibilidad (multi-AZ = una subnet por AZ). Security groups (stateful, por ENI) y NACLs (stateless, por subnet).',
       azure: 'VNet regional; las subnets abarcan todas las zonas de la región. NSGs (stateful) por subnet o NIC; algunos servicios exigen subnet dedicado o delegado (Application Gateway, PostgreSQL Flexible).',
+      gcp: 'VPC GLOBAL: una sola red para todas las regiones; las subnets son regionales y abarcan todas las zonas de su región. Reglas de firewall a nivel de VPC (con tags o service accounts como objetivo).',
     },
   },
   {
@@ -74,6 +79,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'IAM roles: EKS Pod Identity o IRSA para Pods; OIDC del CI → sts:AssumeRoleWithWebIdentity. Los nodos usan su instance role para hacer pull de ECR.',
       azure: 'Microsoft Entra ID: Workload ID (federación del ServiceAccount) para Pods; service connection con workload identity federation para Azure Pipelines; la kubelet identity necesita AcrPull.',
+      gcp: 'IAM con service accounts: Workload Identity Federation for GKE para Pods; Cloud Build usa su service account; los nodos hacen pull con el service account del nodo.',
     },
   },
   {
@@ -84,6 +90,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'EKS gestiona el control plane; nodos como managed node groups, Karpenter o Fargate. Acceso con access entries que mapean IAM → Kubernetes.',
       azure: 'AKS gestiona el control plane (tier Free sin SLA financiado, Standard con SLA); node pools de sistema y de usuario sobre VM Scale Sets. Acceso con Entra ID + Kubernetes RBAC o Azure RBAC.',
+      gcp: 'GKE Standard (gestionas node pools) o Autopilot (Google gestiona los nodos); cluster regional con control plane replicado. VPC-native por defecto (alias IP).',
     },
   },
   {
@@ -94,6 +101,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'ECR con políticas IAM (ecr:PutImage para CI, lectura para el rol de los nodos). Nodos privados: VPC endpoints ecr.api, ecr.dkr y gateway endpoint de S3.',
       azure: 'ACR con Azure RBAC (AcrPush / AcrPull). Private endpoint y desactivar acceso público requieren SKU Premium.',
+      gcp: 'Artifact Registry regional con IAM (artifactregistry.writer / reader). Container Registry (gcr.io) se apagó en 2025.',
     },
   },
   {
@@ -104,6 +112,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'RDS for PostgreSQL Multi-AZ en subnets privadas; failover cambia el endpoint DNS. RDS Proxy para pooling.',
       azure: 'PostgreSQL Flexible Server con VNet integration (subnet delegado) y HA zone-redundant; PgBouncer integrado opcional.',
+      gcp: 'Cloud SQL for PostgreSQL con IP privada (Private Service Access = peering con la VPC del productor) y HA regional; en failover la IP se mantiene.',
     },
   },
   {
@@ -114,6 +123,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'ElastiCache (Valkey / Redis OSS) dentro de la VPC (puerto 6379).',
       azure: 'Azure Managed Redis (sucesor de Azure Cache for Redis), clustered por defecto, sin VNet injection: acceso por private endpoint (puerto 10000).',
+      gcp: 'Memorystore (Redis o Valkey) por IP privada (Private Service Access / Private Service Connect según el producto), puerto 6379.',
     },
   },
   {
@@ -124,6 +134,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'SQS: cola gestionada simple (standard at-least-once o FIFO), DLQ por redrive policy; API HTTPS.',
       azure: 'Service Bus: broker con colas y topics, sesiones, transacciones y DLQ integrada; AMQP 1.0. Private endpoint requiere tier Premium.',
+      gcp: 'Pub/Sub: servicio global de topics y subscriptions, at-least-once (exactly-once opcional en pull), dead-letter topics; se alcanza vía Private Google Access.',
     },
   },
   {
@@ -134,6 +145,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'Escenario con GitLab CI/CD (SaaS externo): id_token OIDC federado con un rol IAM.',
       azure: 'Escenario con Azure DevOps (Repos + Pipelines): service connection con workload identity federation.',
+      gcp: 'Escenario con GitHub + Cloud Build (trigger por la GitHub App); Cloud Source Repositories ya no admite clientes nuevos.',
     },
   },
   {
@@ -144,6 +156,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'Backend s3 con use_lockfile (Terraform ≥ 1.10); el locking con DynamoDB queda obsoleto.',
       azure: 'Backend azurerm: locking nativo de Blob Storage (lease sobre el blob); sin recurso adicional.',
+      gcp: 'Backend gcs: el lock es un objeto .tflock creado de forma condicional junto al state; se recomienda Object Versioning.',
     },
   },
   {
@@ -153,6 +166,7 @@ export const comparisonAspects: ComparisonAspect[] = [
     notes: {
       aws: 'CloudWatch: HTTPCode_ELB_5XX_Count (lo genera el ALB) vs HTTPCode_Target_5XX_Count (la app); access logs del ALB con elb_status_code y target_status_code.',
       azure: 'Azure Monitor: UnhealthyHostCount y BackendResponseStatus de Application Gateway; ApplicationGatewayAccessLog con httpStatus y serverStatus en Log Analytics (KQL).',
+      gcp: 'Cloud Monitoring (https/request_count, backend_latencies) y logs del load balancer con statusDetails: failed_to_pick_backend vs response_sent_by_backend.',
     },
   },
 ];
