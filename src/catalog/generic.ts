@@ -137,6 +137,78 @@ build-catalog:
     },
   }),
   svc({
+    id: 'github-repo',
+    name: 'GitHub — repositorio de aplicación',
+    provider: 'generic',
+    category: 'Control de versiones',
+    layer: 'delivery',
+    plane: 'delivery',
+    role: 'Fuente del código; dispara el CI',
+    inspector: {
+      summary: 'Repositorio Git en GitHub con el código de los microservicios. Un push a main notifica al sistema de CI (aquí, un trigger de Cloud Build mediante la GitHub App).',
+      advanced: 'Las reglas de protección de rama (o rulesets) exigen PR, revisión y checks verdes antes de llegar a main.',
+      receives: ['git push'],
+      processes: ['Almacenar commits', 'Branch protection', 'Webhooks / GitHub App'],
+      emits: ['Evento push'],
+      protocols: ['HTTPS', 'SSH'],
+      docs: [{ title: 'GitHub — About protected branches', url: 'https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches' }],
+    },
+  }),
+  svc({
+    id: 'github-actions',
+    name: 'GitHub Actions (runner)',
+    provider: 'generic',
+    category: 'CI',
+    layer: 'delivery',
+    plane: 'delivery',
+    role: 'Integración continua: test, scan, build, publish',
+    inspector: {
+      summary: 'Un workflow de GitHub Actions ejecuta tests, scans, build y push de imágenes, y actualiza el repo GitOps.',
+      advanced:
+        'CI ≠ CD: el workflow no aplica nada al cluster. Con AWS, Azure o GCP puede autenticarse por OIDC (id-token: write) sin secretos de larga duración. Con proveedores que sólo admiten tokens de API (como DigitalOcean en este escenario), el token se guarda como secret del repositorio o del environment: scopes mínimos, rotación y environments con revisores.',
+      receives: ['Evento push'],
+      processes: ['checkout', 'lint', 'tests', 'SAST/SCA', 'docker build', 'image scan', 'push', 'commit GitOps'],
+      emits: ['Imagen OCI', 'Commit al repo GitOps'],
+      protocols: ['HTTPS'],
+      identity: ['OIDC (id-token) cuando el proveedor lo soporta; si no, token de API en GitHub Secrets'],
+      exampleConfig: {
+        language: 'yaml',
+        code: `# ILUSTRATIVO — .github/workflows/release.yml
+on: { push: { branches: [main] } }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: { service: [api, catalog, orders] }
+    steps:
+      - uses: actions/checkout@v4
+      - run: make test
+      - uses: digitalocean/action-doctl@v2
+        with: { token: \${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} }
+      - run: doctl registry login --expiry-seconds 600
+      - run: |
+          docker build -t registry.digitalocean.com/shop/\${{ matrix.service }}:$VERSION services/\${{ matrix.service }}
+          docker push registry.digitalocean.com/shop/\${{ matrix.service }}:$VERSION`,
+      },
+      failureModes: [
+        {
+          name: 'Tests fallidos',
+          symptoms: 'El job falla en tests; no se publican imágenes.',
+          diagnosis: 'Logs del job; reproducir localmente.',
+          mitigation: 'Corregir el código; producción no cambia.',
+        },
+        {
+          name: 'Token expirado o sin scope',
+          symptoms: 'unauthorized al hacer login/push en el registry.',
+          diagnosis: 'Revisar el secret y los scopes del token.',
+          mitigation: 'Rotar el token con scopes mínimos; preferir OIDC donde exista.',
+        },
+      ],
+      docs: [{ title: 'GitHub Actions documentation', url: 'https://docs.github.com/en/actions' }],
+      glossary: ['CI', 'OIDC'],
+    },
+  }),
+  svc({
     id: 'gitlab-ci',
     name: 'GitLab CI/CD (runner)',
     provider: 'generic',
