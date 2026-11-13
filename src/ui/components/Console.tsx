@@ -76,6 +76,12 @@ export function Console() {
 // --------------------------------------------------------------- eventos
 
 const DOMAINS: (Domain | 'all')[] = ['all', 'request', 'delivery', 'iac', 'system'];
+/** Filas mostradas mientras se sigue el último evento. */
+const MAX_FOLLOW_ROWS = 400;
+/** Filas máximas con la ventana anclada (scroll libre). */
+const MAX_FROZEN_ROWS = 3000;
+/** Margen para considerar que el scroll está "en el fondo". */
+const BOTTOM_TOLERANCE_PX = 8;
 
 function EventsView() {
   const engine = useEngine();
@@ -91,25 +97,83 @@ function EventsView() {
   const [showDebug, setShowDebug] = useState(false);
   const [onlyTrace, setOnlyTrace] = useState(false);
   const [text, setText] = useState('');
-  const [follow, setFollow] = useState(true);
+  /**
+   * Seguimiento tipo "stick to bottom": se sigue el último evento sólo
+   * mientras el scroll está en el fondo. Si el usuario sube, `frozen` ancla
+   * la ventana (primer seq visible y último seq visto) para que la vista no
+   * se mueva aunque lleguen eventos nuevos.
+   */
+  const [frozen, setFrozen] = useState<{ fromSeq: number; seenSeq: number } | undefined>(undefined);
+  const follow = frozen === undefined;
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  const rows: SimulationEvent[] = [];
   const needle = text.trim().toLowerCase();
-  for (let i = engine.log.length - 1; i >= 0 && rows.length < 400; i--) {
-    const ev = engine.log[i]!;
-    if (!showDebug && ev.severity === 'debug') continue;
-    if (domain !== 'all' && ev.domain !== domain) continue;
-    if (filterByNode && selectedNodeId && ev.componentId !== selectedNodeId) continue;
-    if (onlyTrace && selectedTraceId && ev.traceId !== selectedTraceId) continue;
-    if (needle && !`${ev.message} ${ev.componentId} ${ev.type} ${ev.traceId ?? ''}`.toLowerCase().includes(needle)) continue;
-    rows.push(ev);
-  }
-  rows.reverse();
+  const matches = (ev: SimulationEvent) =>
+    !(!showDebug && ev.severity === 'debug') &&
+    !(domain !== 'all' && ev.domain !== domain) &&
+    !(filterByNode && selectedNodeId && ev.componentId !== selectedNodeId) &&
+    !(onlyTrace && selectedTraceId && ev.traceId !== selectedTraceId) &&
+    !(needle && !`${ev.message} ${ev.componentId} ${ev.type} ${ev.traceId ?? ''}`.toLowerCase().includes(needle));
 
+  const rows: SimulationEvent[] = [];
+  let newBelow = 0;
+  if (frozen && frozen.fromSeq < engine.log.length) {
+    // Ventana anclada: desde el primer evento visible hacia delante.
+    for (let i = frozen.fromSeq; i < engine.log.length && rows.length < MAX_FROZEN_ROWS; i++) {
+      const ev = engine.log[i]!;
+      if (!matches(ev)) continue;
+      rows.push(ev);
+      if (ev.seq > frozen.seenSeq) newBelow += 1;
+    }
+  } else {
+    for (let i = engine.log.length - 1; i >= 0 && rows.length < MAX_FOLLOW_ROWS; i--) {
+      const ev = engine.log[i]!;
+      if (matches(ev)) rows.push(ev);
+    }
+    rows.reverse();
+  }
+
+  // Un reinicio o cambio de escenario invalida el ancla: volver a seguir.
+  useEffect(() => setFrozen(undefined), [engine]);
+
+  const freezeHere = () => setFrozen({ fromSeq: rows[0]?.seq ?? engine.log.length, seenSeq: rows[rows.length - 1]?.seq ?? engine.log.length - 1 });
+
+  /** scrollTop que fijamos nosotros en el último auto-scroll. */
+  const autoScrollTop = useRef<number | null>(null);
+  /**
+   * ¿El usuario subió respecto a donde dejamos el scroll? Que crezca el
+   * contenido por debajo no cambia scrollTop, así que no cuenta; y si el
+   * contenido encoge, el navegador lo ajusta al máximo (sigue "en el fondo").
+   */
+  const userMovedUp = (el: HTMLDivElement) =>
+    autoScrollTop.current !== null && el.scrollTop < autoScrollTop.current - BOTTOM_TOLERANCE_PX && el.scrollTop < el.scrollHeight - el.clientHeight - BOTTOM_TOLERANCE_PX;
   useEffect(() => {
-    if (follow && bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+    const el = bodyRef.current;
+    if (!el) return;
+    if (!follow) {
+      autoScrollTop.current = null;
+      return;
+    }
+    // El evento 'scroll' llega asíncrono: si el usuario ya subió, respetarlo
+    // en vez de volver a forzar el fondo.
+    if (userMovedUp(el)) {
+      freezeHere();
+      return;
+    }
+    el.scrollTop = el.scrollHeight;
+    autoScrollTop.current = el.scrollTop;
   });
+
+  const onScroll = () => {
+    const el = bodyRef.current;
+    if (!el) return;
+    if (!follow) {
+      if (el.scrollHeight - el.scrollTop - el.clientHeight <= BOTTOM_TOLERANCE_PX) setFrozen(undefined);
+    } else if (userMovedUp(el)) {
+      freezeHere();
+    }
+  };
+  const jumpToLatest = () => setFrozen(undefined);
 
   return (
     <div className="cfl-events">
@@ -134,11 +198,16 @@ function EventsView() {
           {selectedTraceId ? <b className="mono"> {selectedTraceId.slice(0, 8)}</b> : null}
         </label>
         <label className="cfl-toggle">
-          <input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} /> seguir
+          <input type="checkbox" checked={follow} onChange={(e) => (e.target.checked ? jumpToLatest() : freezeHere())} data-testid="follow-toggle" /> seguir
         </label>
         <span className="cfl-muted">{engine.log.length} eventos · todos simulados</span>
       </div>
-      <div className="cfl-log mono" ref={bodyRef} data-testid="event-log">
+      {!follow && newBelow > 0 && (
+        <button className="cfl-btn small cfl-new-events" onClick={jumpToLatest} data-testid="jump-latest">
+          ↓ {newBelow} nuevos · ir al último
+        </button>
+      )}
+      <div className="cfl-log mono" ref={bodyRef} data-testid="event-log" onScroll={onScroll}>
         {rows.map((ev) => (
           <div
             key={ev.id}
