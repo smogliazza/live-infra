@@ -25,6 +25,23 @@ Al conectar un repositorio desde **Workers & Pages → Create**, el dashboard pu
 
 No hay campo "output directory": Wrangler detecta el proyecto Vite y publica `dist/` como assets estáticos. `dist/_headers` también se aplica a los assets de Workers. La URL queda en `https://<nombre>.<subdominio>.workers.dev`.
 
+## 2a. Deploy automático en push a `main`, sólo si CI pasa (deploy hook)
+
+El workflow `.github/workflows/ci.yml` tiene un job `deploy` que, **en cada push a `main` y sólo si `build` y `e2e` pasan**, hace `POST` al deploy hook de Workers Builds. El hook lanza en Cloudflare el mismo build y deploy configurados en el Worker.
+
+Configuración (una sola vez):
+
+1. **Crear el deploy hook** en Cloudflare: Workers & Pages → tu Worker → Settings → Build → Deploy Hooks, para la rama `main`.
+2. **Guardarlo como secret en GitHub:** repositorio → *Settings → Secrets and variables → Actions → New repository secret*, con nombre `CLOUDFLARE_DEPLOY_HOOK` y la URL del hook como valor. La URL es un secreto (quien la tenga puede lanzar deploys): no la pongas en el código ni en issues. Si se filtra, bórrala y crea otra en Cloudflare.
+3. **Evitar deploys dobles:** si el Worker sigue conectado al repo con builds automáticos en `main`, cada push desplegaría dos veces, y una de ellas sin esperar a CI. En *Settings → Build → Branch control* revisa las opciones de builds automáticos. Si tu panel no permite desactivar sólo los de producción, la documentación de Workers Builds indica que cambiar el *deploy command* a `npx wrangler versions upload` hace que los builds automáticos suban versiones sin activarlas. Comprueba que el hook despliega con el comando que esperas antes de confiar en ello. Referencias: [Builds](https://developers.cloudflare.com/workers/ci-cd/builds/) y [Build branches](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/).
+
+Comportamiento del job:
+
+- Sólo corre en `push` a `main`, nunca en pull requests.
+- `concurrency: cloudflare-deploy` evita dos solicitudes de deploy simultáneas.
+- Si falta el secret, el job falla con un mensaje claro. Si Cloudflare responde con error, reintenta 3 veces y falla mostrando la respuesta.
+- El job solo *solicita* el deploy. El build y su resultado se ven en Cloudflare (Workers & Pages → tu Worker → Deployments).
+
 ## 2b. Opción Pages clásica (integración Git)
 
 1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
