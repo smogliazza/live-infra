@@ -190,8 +190,9 @@ td[class^='phase-ErrImage'], td.phase-ImagePullBackOff, td.phase-CrashLoopBackOf
 .cfl-spacer { flex: 1; }
 .cfl-console-body { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
 .cfl-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 6px 10px; border-bottom: 1px solid var(--line); }
-.cfl-events { display: flex; flex-direction: column; min-height: 0; flex: 1; }
-.cfl-log { flex: 1; overflow-y: auto; font-size: 12px; padding: 2px 0; min-height: 0; }
+.cfl-events { position: relative; display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.cfl-new-events { position: absolute; right: 18px; bottom: 10px; z-index: 3; background: #17324f; border-color: var(--accent); color: var(--text); }
+.cfl-log { flex: 1; overflow-y: auto; font-size: 12px; padding: 2px 0; min-height: 0; overflow-anchor: none; /* el auto-scroll lo gestionamos nosotros */ }
 .cfl-log-row { display: flex; gap: 10px; padding: 1px 10px; white-space: nowrap; cursor: pointer; }
 .cfl-log-row:hover { background: var(--bg-2); }
 .cfl-log-row.selected { background: #15283f; }

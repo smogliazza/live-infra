@@ -39,6 +39,26 @@ test.describe('Cloud Flow Lab', () => {
     expect(errors).toEqual([]);
   });
 
+  test('consola: el scroll manual hacia arriba no se ve forzado al fondo mientras corre la simulación', async ({ page }) => {
+    await page.getByLabel('Velocidad').selectOption('10');
+    await page.getByLabel('Carga en RPS').selectOption('50');
+    const log = page.getByTestId('event-log');
+    await expect(page.locator('.cfl-log-row').nth(60)).toBeAttached({ timeout: 30_000 });
+    // El usuario sube con la rueda: se desactiva el seguimiento.
+    await log.hover();
+    await page.mouse.wheel(0, -400);
+    await expect(page.getByTestId('follow-toggle')).not.toBeChecked();
+    const top = await log.evaluate((el) => el.scrollTop);
+    await page.waitForTimeout(1500); // siguen llegando eventos
+    expect(await log.evaluate((el) => el.scrollTop)).toBe(top);
+    await expect(page.getByTestId('jump-latest')).toBeVisible();
+    // Volver al fondo reactiva el seguimiento.
+    await log.evaluate((el) => (el.scrollTop = el.scrollHeight));
+    await expect(page.getByTestId('follow-toggle')).toBeChecked();
+    await page.waitForTimeout(800);
+    expect(await log.evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight)).toBeLessThanOrEqual(8);
+  });
+
   test('fallo WAF: 403 desde el edge', async ({ page }) => {
     await page.getByTestId('open-faults').click();
     await page.getByTestId('fault-waf-false-positive').check();
